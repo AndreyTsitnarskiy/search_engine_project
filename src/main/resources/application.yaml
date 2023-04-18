@@ -4,8 +4,6 @@ indexing-settings:
   sites:
     - url: https://www.lenta.ru
       name: Лента.ру
-    - url: https://www.skillbox.ru
-      name: Skillbox
     - url: https://www.playback.ru
       name: PlayBack.Ru
 
@@ -13,14 +11,38 @@ server:
   port: 8080
 spring:
   datasource:
-   username: root
-   password: rootadminroot
-   url:
-    jdbc:mysql://localhost:3306/search_engine?useSSL=false&requireSSL=false&allowPublicKeyRetrieval=true
-jpa:
-  properties:
-  hibernate:
-    dialect: org.hibernate.dialect.MySQL8Dialect
-    hibernate:
-    ddl-auto: update
+    url: jdbc:mysql://localhost:3306/search_engine?useSSL=false&requireSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: rootadminroot
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 60000
+      pool-name: SearchEngineHikariPool
+      connection-test-query: SELECT 1
+      validation-timeout: 3000
+  jpa:
+    database: mysql
     show-sql: true
+    hibernate:
+      ddl-auto: create
+      dialect: org.hibernate.dialect.MySQL8Dialect
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        jdbc.batch_size: 50
+        order_inserts: true
+        order_updates: true
+        flush_mode: COMMIT
+        generate_statistics: false
+
+connection:
+  - userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.207.132.170 Safari/537.36
+  - referrer: http://www.google.com
+  - timeout: 10000
+  - maxBodySize: 0

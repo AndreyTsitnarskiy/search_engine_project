@@ -74,9 +74,9 @@
                 </div>
                 <div class="Statistics">
                   <div class="Statistics-info">
-                    <div class="Statistics-block"><span class="Statistics-amount" id="totalSites"></span><span class="Statistics-title">sites</span>
+                    <div class="Statistics-block"><span class="Statistics-amount" id="totalSites"></span><span class="Statistics-title">siteEntities</span>
                     </div>
-                    <div class="Statistics-block"><span class="Statistics-amount" id="totalPages"></span><span class="Statistics-title">pages</span>
+                    <div class="Statistics-block"><span class="Statistics-amount" id="totalPages"></span><span class="Statistics-title">pageEntities</span>
                     </div>
                     <div class="Statistics-block"><span class="Statistics-amount" id="totalLemmas"></span><span class="Statistics-title">lemmas</span>
                     </div>
@@ -107,11 +107,11 @@
                   </button>
                 </div><br>
                 <div class="UpdatePageBlock">
-                  <h3>Add/update page:
+                  <h3>Add/update pageEntity:
                   </h3>
                   <form class="form form_close" action="#" method="post" data-send="indexPage">
                     <div class="form-group form-group_row">
-                      <input class="form-input" id="page" name="page" type="text"/>
+                      <input class="form-input" id="pageEntity" name="pageEntity" type="text"/>
                       <button class="btn btn_primary form-btn" type="submit">Add/update
                       </button>
                     </div>
@@ -129,8 +129,8 @@
                   <div class="form-group">
                     <div class="form-selectWrap">
                       <!-- - var options = setOptions(items, ['value', 'selected', 'disabled']);-->
-                      <select class="form-select" name="site">
-                        <option value="" selected="selected">All sites
+                      <select class="form-select" name="siteEntity">
+                        <option value="" selected="selected">All siteEntities
                         </option>
                       </select>
                     </div>

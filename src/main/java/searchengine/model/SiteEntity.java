@@ -10,27 +10,26 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Table(name = "site")
-public class Site {
+public class SiteEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
 
-    @Column(name = "status")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
     private Status status;
 
-    @Column(name = "status_time")
+    @Column(name = "status_time", nullable = false)
     private LocalDateTime localDateTime;
 
-    @Column(name = "last_error")
+    @Column(name = "last_error", columnDefinition = "TEXT")
     private String lastError;
 
-    @Column(name = "url")
+    @Column(name = "url", nullable = false)
     private String url;
 
     @Column
     private String name;
 
-    public Site() {
-    }
 }
