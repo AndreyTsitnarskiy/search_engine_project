@@ -27,7 +27,7 @@ public class PageEntity {
     @Column(name = "code", nullable = false)
     private int code;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "LONGTEXT")
     private String content;
 
 

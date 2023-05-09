@@ -3,7 +3,6 @@ package searchengine.services;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
-import searchengine.model.Status;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -30,6 +29,6 @@ public class ConnectionService {
 
     public String content(String urlString) throws IOException {
         Document document = returnDocument(urlString);
-        return document.select("html").text();
+        return document.html();
     }
 }

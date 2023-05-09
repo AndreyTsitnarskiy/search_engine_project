@@ -18,10 +18,10 @@ import java.io.IOException;
 public class ApiController {
 
     private final StatisticsService statisticsService;
-    private final IndexingServiceImpl indexingService;
+    private final IndexingService indexingService;
 
     @Autowired
-    public ApiController(StatisticsService statisticsService, IndexingServiceImpl indexingService) {
+    public ApiController(StatisticsService statisticsService, IndexingService indexingService) {
         this.statisticsService = statisticsService;
         this.indexingService = indexingService;
     }

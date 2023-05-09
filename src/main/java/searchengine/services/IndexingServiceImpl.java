@@ -5,14 +5,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import searchengine.dto.statistics.ApiIndexing;
 
+import java.io.IOException;
+
 @Service
 @RequiredArgsConstructor
 public class IndexingServiceImpl implements IndexingService {
-    private final ParserSite parserSite;
+
+    private final ParserSiteImpl parserSite;
 
     @Override
-    public ResponseEntity<ApiIndexing> startIndexing() {
-            parserSite.indexAllSites();
+    public ResponseEntity<ApiIndexing> startIndexing() throws IOException {
+        parserSite.indexAllSites();
         return null;
     }
 
