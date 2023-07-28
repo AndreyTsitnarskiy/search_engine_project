@@ -1,9 +1,11 @@
 package searchengine.dto.statistics;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
-public class ApiIndexing {
+@Getter
+@Setter
+public class ApiResponse {
 
     boolean result;
     String messageError;

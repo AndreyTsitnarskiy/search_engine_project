@@ -1,16 +1,15 @@
 package searchengine.services;
 
 import org.springframework.http.ResponseEntity;
-import searchengine.dto.statistics.ApiIndexing;
+import searchengine.dto.statistics.ApiResponse;
 
-import java.io.IOException;
 
 public interface IndexingService {
 
-    ResponseEntity<ApiIndexing> startIndexing() throws IOException;
+    ResponseEntity<ApiResponse> startIndexing();
 
-    ResponseEntity<ApiIndexing> indexPage(String path) throws IOException;
+    ResponseEntity<ApiResponse> indexPage(String page);
 
-    ResponseEntity<ApiIndexing> stopIndexing();
+    ResponseEntity<ApiResponse> stopIndexing();
 
 }

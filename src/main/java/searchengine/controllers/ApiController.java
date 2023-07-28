@@ -5,13 +5,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import searchengine.dto.statistics.ApiIndexing;
+import searchengine.dto.statistics.ApiResponse;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.services.IndexingService;
-import searchengine.services.IndexingServiceImpl;
 import searchengine.services.StatisticsService;
-
-import java.io.IOException;
 
 @RestController
 @RequestMapping("/api")
@@ -32,7 +29,7 @@ public class ApiController {
     }
 
     @GetMapping("/startIndexing")
-    public ResponseEntity<IndexingService> startIndexing() throws IOException {
-        return ResponseEntity.ok((IndexingService) indexingService.startIndexing());
+    public ResponseEntity<ApiResponse> startIndexing(){
+        return indexingService.startIndexing();
     }
 }

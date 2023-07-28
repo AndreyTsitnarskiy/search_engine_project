@@ -2,10 +2,13 @@
 
 indexing-settings:
   sites:
-    - url: https://www.lenta.ru
-      name: Лента.ру
+    - url: https://et-cetera.ru/mobile/
+      name: Театр et-cetera
     - url: https://www.playback.ru
       name: PlayBack.Ru
+    - url: https://www.lutherancathedral.ru/
+      name: Кафедральный собор Святых Петра и Павла
+
 
 server:
   port: 8080
@@ -24,7 +27,7 @@ spring:
       validation-timeout: 3000
   jpa:
     database: mysql
-    show-sql: true
+    show-sql: false
     hibernate:
       ddl-auto: create
       dialect: org.hibernate.dialect.MySQL8Dialect
@@ -42,7 +45,14 @@ spring:
         generate_statistics: false
 
 connection:
-  - userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.207.132.170 Safari/537.36
-  - referrer: http://www.google.com
-  - timeout: 10000
-  - maxBodySize: 0
+  userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.207.132.170 Safari/537.36
+  referrer: http://www.google.com
+  timeout: 10000
+  maxBodySize: 0
+
+#logging:
+#  level:
+#    root: info
+#  file:
+#    log: C:\\Skillbox\ProjectEngine\searchengine\logs\app.log
+#  config: classpath:logback.xml
