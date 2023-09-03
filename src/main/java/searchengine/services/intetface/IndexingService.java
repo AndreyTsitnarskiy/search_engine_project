@@ -1,4 +1,4 @@
-package searchengine.services;
+package searchengine.services.intetface;
 
 import org.springframework.http.ResponseEntity;
 import searchengine.dto.statistics.ApiResponse;

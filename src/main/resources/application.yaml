@@ -44,15 +44,26 @@ spring:
         flush_mode: COMMIT
         generate_statistics: false
 
-connection:
-  userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.207.132.170 Safari/537.36
+connect:
+  user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.53 Safari/537.36
   referrer: http://www.google.com
-  timeout: 10000
-  maxBodySize: 0
 
-#logging:
-#  level:
-#    root: info
-#  file:
-#    log: C:\\Skillbox\ProjectEngine\searchengine\logs\app.log
-#  config: classpath:logback.xml
+file:
+  extensions: pdf|PDF|docx?|DOCX?|xlsx?|XLSX?|pptx?|PPTX?|jpe?g|JPE?G|gif|GIF|png|PNG|mp3|MP3|mp4|MP4|aac|AAC|json|JSON|csv|CSV|exe|EXE|apk|APK|rar|RAR|zip|ZIP|xml|XML|jar|JAR|bin|BIN|svg|SVG|nc|NC|webp|WEBP|m|M|fig|FIG|eps|EPS
+
+selector:
+  weight:
+    title: 1.0
+    body: 0.8
+
+snippet:
+  border: 5
+
+page:
+  frequency:
+    limit: 95
+
+error:
+  interrupted: Indexing stopped by user
+  certificate: Site's certificate validity check failed
+  unknown: Unknown error

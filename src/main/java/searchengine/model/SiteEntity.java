@@ -5,6 +5,7 @@ import lombok.Setter;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Getter
@@ -29,7 +30,9 @@ public class SiteEntity {
     @Column(name = "url", nullable = false)
     private String url;
 
-    @Column
+    @Column(name = "name", nullable = false)
     private String name;
 
+    @OneToMany(mappedBy = "site", cascade = CascadeType.PERSIST)
+    private List<PageEntity> pages;
 }

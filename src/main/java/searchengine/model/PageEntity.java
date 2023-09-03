@@ -4,23 +4,24 @@ import lombok.*;
 
 import javax.persistence.*;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @RequiredArgsConstructor
 @Entity
-@Table(name = "Pages")
+@Table(name = "pages")
 public class PageEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
 
     @NonNull
-    @Column(name = "site_id", nullable = false)
-    private int siteId;
+    @ManyToOne(cascade = CascadeType.PERSIST)
+    @JoinColumn(name = "site_id", referencedColumnName = "id", nullable = false)
+    private SiteEntity site;
 
     @NonNull
-    @Column(name = "path", nullable = false)
+    @Column(name = "path", nullable = false, columnDefinition = "varchar(255)")
     private String path;
 
     @NonNull
@@ -30,5 +31,10 @@ public class PageEntity {
     @Column(columnDefinition = "LONGTEXT")
     private String content;
 
-
+    public PageEntity(@NonNull SiteEntity siteEntity, @NonNull String path, @NonNull int code, String content) {
+        this.site = siteEntity;
+        this.path = path;
+        this.code = code;
+        this.content = content;
+    }
 }
