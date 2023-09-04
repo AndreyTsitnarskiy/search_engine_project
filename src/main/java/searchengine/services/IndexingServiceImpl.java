@@ -61,9 +61,11 @@ public class IndexingServiceImpl implements IndexingService {
         if (isIndexing) {
             apiResponse.setResult(false);
             apiResponse.setMessageError("Indexing already started");
+            log.info("Indexing already started");
         } else {
             new Thread(this::indexAll).start();
             apiResponse.setResult(true);
+            log.info("Indexing started");
         }
         return ResponseEntity.ok(apiResponse);
     }
@@ -90,6 +92,7 @@ public class IndexingServiceImpl implements IndexingService {
     //Перед сохранением проверяется пул потоков forkJoinPool не завершается или не находится в процессе завершения.
     //статус сайта (Status) не установлен в FAILED.
     public void savePageAndSiteStatusTime(PageEntity pageEntity, String pageHtml, SiteEntity siteEntity) {
+        log.info("METHOD SAVE PAGE AND SITE TIME " + pageEntity.getSite().getUrl() + " saved method savePageAndSiteStatusTime " + pageEntity.getPath());
         if (!forkJoinPool.isTerminating()
                 && !forkJoinPool.isTerminated()
                 && !siteStatusMap.get(siteEntity.getUrl()).equals(Status.FAILED)) {
@@ -103,6 +106,7 @@ public class IndexingServiceImpl implements IndexingService {
     //затем pageEntity сохраняется в репозитории pageRepository.
     //siteEntity обновляется с новым значением LocalDateTime, и затем он сохраняется в репозитории siteRepository
     private void savePageAndSite(PageEntity pageEntity, String pageHtml, SiteEntity siteEntity) {
+        log.info("METHOD SAVING " + siteEntity.getUrl());
         pageEntity.setContent(pageHtml);
         log.info("Page " + pageEntity.getSite().getUrl() + " saved method savePageAndSite " + pageEntity.getPath());
         pageRepository.save(pageEntity);
@@ -112,14 +116,18 @@ public class IndexingServiceImpl implements IndexingService {
 
     //старт индексирования
     private void indexAll() {
+        log.info("ALL Indexing started");
         List<Site> allSiteConfig = sites.getSites();
         isIndexing = true;
         forkJoinPool = new ForkJoinPool();
         indexEntityMapGropedBySiteId = new ConcurrentHashMap<>();
+        log.info("COUNT " + allSiteConfig.size());
         webPages = Collections.synchronizedSet(new HashSet<>());
+        log.info("COUNT " + webPages.size());
         siteStatusMap = new ConcurrentHashMap<>();
         for (Site site : allSiteConfig) {
             Thread thread = new Thread(() -> indexSingleSite(site));
+            log.info("Indexing " + site.getName());
             thread.setName(site.getName());
             thread.start();
         }
@@ -128,8 +136,9 @@ public class IndexingServiceImpl implements IndexingService {
     //индексирование одной страницы
     private void indexSingleSite(Site site) {
         try {
-            SiteParserImp pageCrawlerUnit = initCollectionsForSiteAndCreateMainPageCrawlerUnit(site);
-            forkJoinPool.invoke(pageCrawlerUnit);
+            log.info("IndexingSINGLE " + site.getName());
+            SiteParserImp pageParse = initCollectionsForSiteAndCreateMainPageCrawlerUnit(site);
+            forkJoinPool.invoke(pageParse);
             markSiteAsIndexed(site);
             log.info("Indexing SUCCESS " + site.getName());
         } catch (Exception exception) {
@@ -155,8 +164,10 @@ public class IndexingServiceImpl implements IndexingService {
     //метод инициализирует необходимые коллекции и создает экземпляр SiteParserImp для индексации главной страницы сайта
     //он также обновляет статус сайта на INDEXING
     private SiteParserImp initCollectionsForSiteAndCreateMainPageCrawlerUnit(Site siteToHandle) {
+        log.info("METHOD INIT COLLECTIONS FOR SITE " + siteToHandle.getName());
         SiteEntity siteEntity = createAndPrepareSiteForIndexing(siteToHandle);
         siteStatusMap.put(siteEntity.getUrl(), Status.INDEXING);
+        log.info("METHOD INIT COLLECTIONS FOR SITE " + siteStatusMap.get(siteEntity.getUrl()) + " completed");
         Set<IndexEntity> indexEntitySet = new HashSet<>();
         indexEntityMapGropedBySiteId.put(siteEntity.getId(), indexEntitySet);
         String siteHomePage = siteEntity.getUrl();
@@ -168,14 +179,19 @@ public class IndexingServiceImpl implements IndexingService {
     //если сайт уже существует в базе данных, его статус обновляется на INDEXING
     //если сайта нет в базе данных, создается новый объект SiteEntity
     private SiteEntity createAndPrepareSiteForIndexing(Site site) {
+        log.info("METHOD CREATE AND PREPARE SITE FOR INDEXING " + site.getName());
         String homePage = ReworkString.getStartPage(site.getUrl());
         SiteEntity oldSiteEntity = siteRepository.findSiteEntityByUrl(homePage);
         if (oldSiteEntity != null) {
+            log.info("NOT NULL " + oldSiteEntity.getUrl() + " " + oldSiteEntity.getStatus());
             oldSiteEntity.setStatus(Status.INDEXING);
             oldSiteEntity.setLocalDateTime(LocalDateTime.now());
             siteRepository.save(oldSiteEntity);
+            log.info("SAVE " + site.getName() + " completed");
             siteRepository.deleteSiteEntityByUrl(homePage);
+            log.info("DELETE " + site.getName() + " completed");
         }
+        log.info("NEW SAVE " + site.getName() + " completed");
         SiteEntity siteEntity = new SiteEntity();
         siteEntity.setStatus(Status.INDEXING);
         siteEntity.setLocalDateTime(LocalDateTime.now());

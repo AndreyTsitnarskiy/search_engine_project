@@ -49,6 +49,7 @@ public class SiteParserImp extends RecursiveAction {
 
     //извлекаем данные из страницы, обрабатываем якоря
     private void handlePageData() throws IOException {
+        log.info("Handling page data for: " + pagePath);
         List<SiteParserImp> pagesList = new ArrayList<>();
         String userAgent = indexingService.getProperties().getUserAgent();
         String referrer = indexingService.getProperties().getReferrer();
@@ -57,18 +58,22 @@ public class SiteParserImp extends RecursiveAction {
         if (httpStatusCode != 200) {
             connection = ConnectionUtil.getConnection(ReworkString.cutSlash(pagePath), userAgent, referrer);
             httpStatusCode = connection.execute().statusCode();
+            log.info("Page status code: " + httpStatusCode);
         }
 
         String pathToSave = ReworkString.cutProtocolAndHost(pagePath, siteEntity.getUrl());
         String html = "";
         PageEntity pageEntity = new PageEntity(siteEntity, pathToSave, httpStatusCode, html);
         if (httpStatusCode != 200) {
+            log.info("Page BAD CODE status code: " + httpStatusCode + " for path: " + pagePath);
             indexingService.savePageAndSiteStatusTime(pageEntity, html, siteEntity);
         } else {
+            log.info("Page GOOD CODE status code: " + httpStatusCode + " for path: " + pagePath);
             Document document = connection.get();
             html = document.outerHtml();
             indexingService.savePageAndSiteStatusTime(pageEntity, html, siteEntity);
             Elements anchors = document.select("body").select("a");
+            log.info("Anchors count: " + anchors.size() + " for path: " + pagePath);
             handleAnchors(anchors, pagesList);
         }
         for (SiteParserImp siteParserImp : pagesList) {

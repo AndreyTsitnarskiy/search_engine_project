@@ -6,6 +6,8 @@ import org.springframework.transaction.annotation.Transactional;
 import searchengine.model.SiteEntity;
 import searchengine.model.Status;
 
+import java.time.LocalDateTime;
+
 @Repository
 public interface SiteRepository extends JpaRepository<SiteEntity, Long> {
 
