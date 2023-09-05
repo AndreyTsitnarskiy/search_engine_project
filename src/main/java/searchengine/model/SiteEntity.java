@@ -33,6 +33,6 @@ public class SiteEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @OneToMany(mappedBy = "site", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "site", cascade = CascadeType.MERGE)
     private List<PageEntity> pages;
 }

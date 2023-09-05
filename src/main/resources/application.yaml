@@ -4,8 +4,8 @@ indexing-settings:
   sites:
     - url: https://et-cetera.ru/mobile/
       name: Театр et-cetera
-    - url: https://www.playback.ru
-      name: PlayBack.Ru
+#    - url: https://www.playback.ru
+#      name: PlayBack.Ru
     - url: https://www.lutherancathedral.ru/
       name: Кафедральный собор Святых Петра и Павла
 

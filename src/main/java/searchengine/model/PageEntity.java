@@ -16,7 +16,7 @@ public class PageEntity {
     private int id;
 
     @NonNull
-    @ManyToOne(cascade = CascadeType.PERSIST)
+    @ManyToOne(cascade = CascadeType.MERGE)
     @JoinColumn(name = "site_id", referencedColumnName = "id", nullable = false)
     private SiteEntity site;
 
