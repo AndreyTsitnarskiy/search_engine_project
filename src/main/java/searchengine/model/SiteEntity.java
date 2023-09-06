@@ -35,4 +35,7 @@ public class SiteEntity {
 
     @OneToMany(mappedBy = "site", cascade = CascadeType.MERGE)
     private List<PageEntity> pages;
+
+    @OneToMany(mappedBy = "site", cascade = CascadeType.MERGE)
+    private List<LemmaEntity> lemmaEntities;
 }

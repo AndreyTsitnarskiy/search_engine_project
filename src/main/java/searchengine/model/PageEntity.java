@@ -3,12 +3,14 @@ package searchengine.model;
 import lombok.*;
 
 import javax.persistence.*;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
 @RequiredArgsConstructor
 @Entity
-@Table(name = "pages")
+@Table(name = "pages", indexes = @Index(name = "idx_indexes_page_id", columnList = "path"),
+        uniqueConstraints = { @UniqueConstraint(columnNames = { "path", "site_id" }) })
 public class PageEntity {
 
     @Id
@@ -30,6 +32,9 @@ public class PageEntity {
 
     @Column(columnDefinition = "LONGTEXT")
     private String content;
+
+    @OneToMany(mappedBy = "page", cascade = CascadeType.ALL)
+    private List<IndexEntity> indexEntities;
 
     public PageEntity(@NonNull SiteEntity siteEntity, @NonNull String path, @NonNull int code, String content) {
         this.site = siteEntity;

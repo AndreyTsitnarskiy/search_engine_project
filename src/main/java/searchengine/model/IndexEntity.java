@@ -13,7 +13,7 @@ import javax.persistence.*;
 @NoArgsConstructor
 @RequiredArgsConstructor
 @Entity
-@Table(name = "indexes")
+@Table(name = "indexes_table")
 public class IndexEntity {
 
     @Id
@@ -25,5 +25,15 @@ public class IndexEntity {
     @JoinColumn(name = "page_id", referencedColumnName = "id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private PageEntity page;
+
+    @NonNull
+    @ManyToOne
+    @JoinColumn(name = "lemma_id", referencedColumnName = "id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private LemmaEntity lemma;
+
+    @NonNull
+    @Column(name = "rank", nullable = false)
+    private float rank_lemmas;
 
 }
