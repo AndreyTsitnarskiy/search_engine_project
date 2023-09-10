@@ -13,6 +13,7 @@ import searchengine.model.PageEntity;
 import searchengine.model.SiteEntity;
 import searchengine.model.Status;
 import searchengine.repository.IndexRepository;
+import searchengine.repository.LemmaRepository;
 import searchengine.repository.PageRepository;
 import searchengine.repository.SiteRepository;
 import searchengine.services.intetface.IndexingService;
@@ -43,6 +44,8 @@ public class IndexingServiceImpl implements IndexingService {
     private final PageRepository pageRepository;
     private final SiteRepository siteRepository;
     private final IndexRepository indexRepository;
+    private final LemmaRepository lemmaRepository;
+    private LemmaServiceImpl lemmaService;
 
     @Getter
     private final Properties properties;
