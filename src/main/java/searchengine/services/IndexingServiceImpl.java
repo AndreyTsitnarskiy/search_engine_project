@@ -45,7 +45,7 @@ public class IndexingServiceImpl implements IndexingService {
     private final SiteRepository siteRepository;
     private final IndexRepository indexRepository;
     private final LemmaRepository lemmaRepository;
-    private LemmaServiceImpl lemmaService;
+    private final LemmaServiceImpl lemmaService;
 
     @Getter
     private final Properties properties;

@@ -1,5 +1,3 @@
-# example values
-
 indexing-settings:
   sites:
     - url: https://et-cetera.ru/mobile/
@@ -8,7 +6,6 @@ indexing-settings:
 #      name: PlayBack.Ru
     - url: https://www.lutherancathedral.ru/
       name: Кафедральный собор Святых Петра и Павла
-
 
 server:
   port: 8080
@@ -43,6 +40,8 @@ spring:
         order_updates: true
         flush_mode: COMMIT
         generate_statistics: false
+  main:
+    allow-bean-definition-overriding: true
 
 connect:
   user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.53 Safari/537.36
@@ -67,3 +66,7 @@ error:
   interrupted: Indexing stopped by user
   certificate: Site's certificate validity check failed
   unknown: Unknown error
+
+logging:
+  level:
+    root: INFO

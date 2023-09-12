@@ -8,7 +8,6 @@ import org.jsoup.UnsupportedMimeTypeException;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.springframework.stereotype.Service;
 import searchengine.exceptions.SiteExceptions;
 import searchengine.model.PageEntity;
 import searchengine.model.SiteEntity;
@@ -18,7 +17,8 @@ import searchengine.util.ReworkString;
 
 import java.io.IOException;
 import java.net.ConnectException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.RecursiveAction;
 
 @Log4j2

@@ -32,11 +32,11 @@
     </Appenders>
 
     <Loggers>
-        <Logger name="parser" level="info">
+        <Logger name="parser" level="INFO">
             <Appender-ref name="PARSER"/>
         </Logger>
         <!-- Корневой логгер -->
-        <Root level="info">
+        <Root level="INFO">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="File"/>
         </Root>
