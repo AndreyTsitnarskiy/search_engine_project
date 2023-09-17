@@ -3,7 +3,6 @@ package searchengine.services;
 import lombok.RequiredArgsConstructor;
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.springframework.stereotype.Service;
-import searchengine.model.LemmaEntity;
 import searchengine.services.intetface.LemmaService;
 
 import java.util.*;
@@ -17,9 +16,9 @@ public class LemmaServiceImpl implements LemmaService {
     private static final String[] particlesNames = new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ"};
 
     @Override
-    public HashMap<String, LemmaEntity> getLemmaMap(String url) {
+    public HashMap<String, Integer> getLemmaMap(String html) {
         HashMap<String, Integer> lemmaMap = new HashMap<>();
-        String[] words = arrayRussianWorlds(url);
+        String[] words = arrayRussianWorlds(html);
         for (String word : words) {
             if(word.isBlank()){
                 continue;
@@ -42,8 +41,7 @@ public class LemmaServiceImpl implements LemmaService {
                 lemmaMap.put(normalizedWord, 1);
             }
         }
-
-        return null;
+        return lemmaMap;
     }
 
     @Override

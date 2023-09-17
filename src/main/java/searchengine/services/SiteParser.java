@@ -23,7 +23,7 @@ import java.util.concurrent.RecursiveAction;
 
 @Log4j2
 @RequiredArgsConstructor
-public class SiteParserImp extends RecursiveAction {
+public class SiteParser extends RecursiveAction {
 
     private final IndexingServiceImpl indexingService;
     private final SiteEntity siteEntity;
@@ -50,7 +50,7 @@ public class SiteParserImp extends RecursiveAction {
     //извлекаем данные из страницы, обрабатываем якоря
     private void handlePageData() throws IOException {
         log.info("HANDING PAGE DATA: " + pagePath);
-        List<SiteParserImp> pagesList = new ArrayList<>();
+        List<SiteParser> pagesList = new ArrayList<>();
         String userAgent = indexingService.getProperties().getUserAgent();
         String referrer = indexingService.getProperties().getReferrer();
         Connection connection = ConnectionUtil.getConnection(pagePath, userAgent, referrer);
@@ -69,16 +69,17 @@ public class SiteParserImp extends RecursiveAction {
             Document document = connection.get();
             html = document.outerHtml();
             indexingService.savePageAndSiteStatusTime(pageEntity, html, siteEntity);
+            indexingService.extractLemmas(html, pageEntity, siteEntity);
             Elements anchors = document.select("body").select("a");
             handleAnchors(anchors, pagesList);
         }
-        for (SiteParserImp siteParserImp : pagesList) {
-            siteParserImp.join();
+        for (SiteParser siteParser : pagesList) {
+            siteParser.join();
         }
     }
 
     //метод обрабатывает все ссылки на странице и создает новые задачи парсинга для каждой ссылки
-    private void handleAnchors(Elements elements, List<SiteParserImp> parserList) {
+    private void handleAnchors(Elements elements, List<SiteParser> parserList) {
         String fileExtensions = indexingService.getProperties().getFileExtensions();
         for (Element anchor : elements) {
             String href = ReworkString.getHrefFromAnchor(anchor);
@@ -88,9 +89,9 @@ public class SiteParserImp extends RecursiveAction {
                 if (!indexingService.getSiteStatusMap().get(siteEntity.getUrl()).equals(Status.INDEXING)) {
                     return;
                 }
-                SiteParserImp siteParserImp = new SiteParserImp(indexingService, siteEntity, href);
-                parserList.add(siteParserImp);
-                siteParserImp.fork();
+                SiteParser siteParser = new SiteParser(indexingService, siteEntity, href);
+                parserList.add(siteParser);
+                siteParser.fork();
             }
         }
     }

@@ -8,10 +8,7 @@ import org.springframework.stereotype.Service;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
 import searchengine.dto.statistics.ApiResponse;
-import searchengine.model.IndexEntity;
-import searchengine.model.PageEntity;
-import searchengine.model.SiteEntity;
-import searchengine.model.Status;
+import searchengine.model.*;
 import searchengine.repository.IndexRepository;
 import searchengine.repository.LemmaRepository;
 import searchengine.repository.PageRepository;
@@ -24,10 +21,7 @@ import javax.net.ssl.SSLHandshakeException;
 import java.security.cert.CertPathValidatorException;
 import java.security.cert.CertificateExpiredException;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -39,7 +33,7 @@ import java.util.concurrent.ForkJoinPool;
 public class IndexingServiceImpl implements IndexingService {
 
     private final SitesList sites;
-    private SiteParserImp siteParserImp;
+    private SiteParser siteParser;
     private ForkJoinPool forkJoinPool = new ForkJoinPool();
     private final PageRepository pageRepository;
     private final SiteRepository siteRepository;
@@ -50,13 +44,14 @@ public class IndexingServiceImpl implements IndexingService {
     @Getter
     private final Properties properties;
     private volatile boolean isIndexing = false;
-    private ConcurrentMap<Integer, Set<IndexEntity>> indexEntityMapGropedBySiteId;
 
     @Getter
     private Set<String> webPages;
 
     @Getter
     private ConcurrentMap<String, Status> siteStatusMap;
+    private ConcurrentMap<Integer, Map<String, LemmaEntity>> lemmasMap;
+    private ConcurrentMap<Integer, Set<IndexEntity>> indexMap;
 
     @Override
     public ResponseEntity<ApiResponse> startIndexing() {
@@ -74,8 +69,9 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     @Override
-    public ResponseEntity<ApiResponse> indexPage(String path) {
-        return null;
+    public ResponseEntity<ApiResponse> indexPage(String path){
+        ApiResponse apiResponse = new ApiResponse();
+        return ResponseEntity.ok(apiResponse);
     }
 
     @Override
@@ -121,7 +117,8 @@ public class IndexingServiceImpl implements IndexingService {
         List<Site> allSiteConfig = sites.getSites();
         isIndexing = true;
         forkJoinPool = new ForkJoinPool();
-        indexEntityMapGropedBySiteId = new ConcurrentHashMap<>();
+        lemmasMap = new ConcurrentHashMap<>();
+        indexMap = new ConcurrentHashMap<>();
         webPages = Collections.synchronizedSet(new HashSet<>());;
         siteStatusMap = new ConcurrentHashMap<>();
         for (Site site : allSiteConfig) {
@@ -134,15 +131,45 @@ public class IndexingServiceImpl implements IndexingService {
     //индексирование одной страницы
     private void indexSingleSite(Site site) {
         try {
-            SiteParserImp pageParse = initCollectionsForSiteAndCreateMainPageCrawlerUnit(site);
+            SiteParser pageParse = initCollectionsForSiteAndCreateMainPageCrawlerUnit(site);
             forkJoinPool.invoke(pageParse);
+            fillLemmasAndIndexTable(site);
             markSiteAsIndexed(site);
         } catch (Exception exception) {
             log.warn("Indexing FAILED " + site.getName() + " due to " + exception);
             fixSiteIndexingError(site, exception);
+            clearLemmasAndIndexTable(site);
         } finally {
             markIndexingCompletionIfApplicable();
         }
+    }
+
+    public void extractLemmas(String html, PageEntity pageEntity, SiteEntity siteEntity){
+        HashMap<String, Integer> lemmaEntityHashMap = lemmaService.getLemmaMap(html);
+        for (Map.Entry<String, Integer> lemmas : lemmaEntityHashMap.entrySet()){
+            LemmaEntity lemmaEntity = new LemmaEntity();
+            lemmaEntity.setLemma(lemmas.getKey());
+            lemmaEntity.setFrequency(1);
+            lemmaEntity.setSite(siteEntity);
+
+        }
+    }
+
+    private void fillLemmasAndIndexTable(Site site){
+        String url = ReworkString.getStartPage(site.getUrl());
+        int siteEntityId = siteRepository.findSiteEntityByUrl(url).getId();
+        Map<String, LemmaEntity> lemmaEntityMap = lemmasMap.get(siteEntityId);
+        lemmaRepository.saveAll(lemmaEntityMap.values());
+        lemmasMap.get(siteEntityId).clear();
+        indexRepository.saveAll(indexMap.get(siteEntityId));
+        indexMap.get(siteEntityId).clear();
+    }
+
+    private void clearLemmasAndIndexTable(Site site){
+        String url = ReworkString.getStartPage(site.getUrl());
+        int siteEntityId = siteRepository.findSiteEntityByUrl(url).getId();
+        lemmasMap.get(siteEntityId).clear();
+        indexMap.get(siteEntityId).clear();
     }
 
     //метод проверяет, завершилась ли индексация всех сайтов
@@ -160,15 +187,17 @@ public class IndexingServiceImpl implements IndexingService {
 
     //метод инициализирует необходимые коллекции и создает экземпляр SiteParserImp для индексации главной страницы сайта
     //он также обновляет статус сайта на INDEXING
-    private SiteParserImp initCollectionsForSiteAndCreateMainPageCrawlerUnit(Site siteToHandle) {
+    private SiteParser initCollectionsForSiteAndCreateMainPageCrawlerUnit(Site siteToHandle) {
         log.info("INIT COLLECTIONS FOR SITE " + siteToHandle.getName());
         SiteEntity siteEntity = createAndPrepareSiteForIndexing(siteToHandle);
         siteStatusMap.put(siteEntity.getUrl(), Status.INDEXING);
+        Map<String, LemmaEntity> lemmaEntityMap = new HashMap<>();
+        lemmasMap.put(siteEntity.getId(), lemmaEntityMap);
         Set<IndexEntity> indexEntitySet = new HashSet<>();
-        indexEntityMapGropedBySiteId.put(siteEntity.getId(), indexEntitySet);
+        indexMap.put(siteEntity.getId(), indexEntitySet);
         String siteHomePage = siteEntity.getUrl();
         webPages.add(siteHomePage);
-        return new SiteParserImp(this, siteEntity, siteHomePage);
+        return new SiteParser(this, siteEntity, siteHomePage);
     }
 
     //этот метод создает и подготавливает объект SiteEntity для индексации сайта
