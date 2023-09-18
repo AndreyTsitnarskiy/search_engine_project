@@ -3,6 +3,7 @@ package searchengine.services;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.jsoup.nodes.Document;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import searchengine.config.Site;
@@ -14,6 +15,7 @@ import searchengine.repository.LemmaRepository;
 import searchengine.repository.PageRepository;
 import searchengine.repository.SiteRepository;
 import searchengine.services.intetface.IndexingService;
+import searchengine.util.ConnectionUtil;
 import searchengine.util.Properties;
 import searchengine.util.ReworkString;
 
@@ -26,6 +28,8 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ForkJoinPool;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Log4j2
 @Service
@@ -145,7 +149,7 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     public void extractLemmas(String html, PageEntity pageEntity, SiteEntity siteEntity){
-        HashMap<String, Integer> lemmaEntityHashMap = lemmaService.getLemmaMap(html);
+        Map<String, Integer> lemmaEntityHashMap = getAllLemmasPage(html);
         for (Map.Entry<String, Integer> lemmas : lemmaEntityHashMap.entrySet()){
             LemmaEntity lemmaEntity = new LemmaEntity();
             lemmaEntity.setLemma(lemmas.getKey());
@@ -153,6 +157,18 @@ public class IndexingServiceImpl implements IndexingService {
             lemmaEntity.setSite(siteEntity);
 
         }
+    }
+
+    public Map<String, Integer> getAllLemmasPage(String html){
+        Document document = ConnectionUtil.parse(html);
+        String title = document.title();
+        String body = document.body().text();
+
+        Map<String, Integer> titleLemmas = lemmaService.getLemmaMap(title);
+        Map<String, Integer> bodyLemmas = lemmaService.getLemmaMap(body);
+
+        return Stream.concat(titleLemmas.entrySet().stream(), bodyLemmas.entrySet().stream())
+                .collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.summingInt(Map.Entry::getValue)));
     }
 
     private void fillLemmasAndIndexTable(Site site){
