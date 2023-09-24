@@ -22,12 +22,6 @@ public class Properties {
     @Value("${file.extensions}")
     private String fileExtensions;
 
-    @Value("${selector.weight.title}")
-    private float weightTitle;
-
-    @Value("${selector.weight.body}")
-    private float weightBody;
-
     @Value("${error.interrupted}")
     private String interruptedByUserMessage;
 

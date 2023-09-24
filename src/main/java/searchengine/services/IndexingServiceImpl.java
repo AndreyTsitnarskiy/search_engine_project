@@ -95,7 +95,7 @@ public class IndexingServiceImpl implements IndexingService {
     //Перед сохранением проверяется пул потоков forkJoinPool не завершается или не находится в процессе завершения.
     //статус сайта (Status) не установлен в FAILED.
     public void savePageAndSiteStatusTime(PageEntity pageEntity, String pageHtml, SiteEntity siteEntity) {
-        log.info("METHOD SAVE PAGE AND SITE TIME " + pageEntity.getSite().getUrl() + " saved method savePageAndSiteStatusTime " + pageEntity.getPath());
+        //log.info("METHOD SAVE PAGE AND SITE TIME " + pageEntity.getSite().getUrl() + " saved method savePageAndSiteStatusTime " + pageEntity.getPath());
         if (!forkJoinPool.isTerminating()
                 && !forkJoinPool.isTerminated()
                 && !siteStatusMap.get(siteEntity.getUrl()).equals(Status.FAILED)) {
@@ -135,9 +135,9 @@ public class IndexingServiceImpl implements IndexingService {
     //индексирование одной страницы
     private void indexSingleSite(Site site) {
         try {
-            SiteParser pageParse = initCollectionsForSiteAndCreateMainPageCrawlerUnit(site);
+            SiteParser pageParse = initCollectionsForSiteAndCreateMainPageSiteParser(site);
             forkJoinPool.invoke(pageParse);
-            fillLemmasAndIndexTable(site);
+            //fillLemmasAndIndexTable(site);
             markSiteAsIndexed(site);
         } catch (Exception exception) {
             log.warn("Indexing FAILED " + site.getName() + " due to " + exception);
@@ -149,15 +149,61 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     public void extractLemmas(String html, PageEntity pageEntity, SiteEntity siteEntity){
+        Set<IndexEntity> indexEntitySet = new HashSet<>();
         Map<String, Integer> lemmaEntityHashMap = getAllLemmasPage(html);
+        Map<String, LemmaEntity> allLemmasBySiteId = lemmasMap.get(siteEntity.getId());
         for (Map.Entry<String, Integer> lemmas : lemmaEntityHashMap.entrySet()){
-            LemmaEntity lemmaEntity = new LemmaEntity();
-            lemmaEntity.setLemma(lemmas.getKey());
-            lemmaEntity.setFrequency(1);
-            lemmaEntity.setSite(siteEntity);
-
+            LemmaEntity lemmaEntityFromAllLemmasMap = allLemmasBySiteId.get(lemmas);
+            log.info("LEMMA " + lemmaEntityFromAllLemmasMap.getLemma());
+            if (lemmaEntityFromAllLemmasMap == null) {
+                LemmaEntity lemmaEntity = new LemmaEntity();
+                lemmaEntity.setLemma(lemmas.getKey());
+                lemmaEntity.setFrequency(1);
+                lemmaEntity.setSite(siteEntity);
+                lemmaRepository.save(lemmaEntity);
+                log.info("LEMMA CREATE " + lemmaEntity.getLemma());
+                lemmasMap.get(siteEntity.getId()).put(lemmas.getKey(), lemmaEntity);
+                float rank = returnRankLemmasForIndexTable(lemmaEntityHashMap, lemmas.getKey());
+                IndexEntity indexEntity = new IndexEntity(pageEntity, lemmaEntity, rank);
+                indexRepository.save(indexEntity);
+                indexEntitySet.add(indexEntity);
+            } else {
+                lemmaEntityFromAllLemmasMap.setFrequency(lemmaEntityFromAllLemmasMap.getFrequency() + 1);
+            }
         }
+        indexMap.put(siteEntity.getId(), indexEntitySet);
     }
+
+    private float returnRankLemmasForIndexTable(Map<String, Integer> integerMap, String lemma){
+        float result = 0;
+        for (Map.Entry<String, Integer> entry : integerMap.entrySet()){
+            if(entry.equals(lemma)){
+                result = entry.getValue();
+            }
+        }
+        return result;
+    }
+
+    /*public void createAndFillIndexMap(SiteEntity siteEntity, PageEntity pageEntity, float rank){
+        Map<String, LemmaEntity> getLemmasBySiteId = lemmasMap.get(siteEntity.getId());
+        Set<IndexEntity> indexEntitySet = new HashSet<>();
+        for (Map.Entry<String, LemmaEntity> entry : getLemmasBySiteId.entrySet()){
+            IndexEntity indexEntity = new IndexEntity(pageEntity, entry.getValue(), rank);
+            indexEntitySet.add(indexEntity);
+        }
+        indexMap.put(siteEntity.getId(), indexEntitySet);
+    }*/
+
+    /*private void fillLemmasAndIndexTable(Site site){
+            String url = ReworkString.getStartPage(site.getUrl());
+            int siteEntityId = siteRepository.findSiteEntityByUrl(url).getId();
+            Map<String, LemmaEntity> lemmaEntityMap = lemmasMap.get(siteEntityId);
+            Set<IndexEntity> indexEntitySet = indexMap.get(siteEntityId);
+            lemmaRepository.saveAll(lemmaEntityMap.values());
+            lemmasMap.get(siteEntityId).clear();
+            indexRepository.saveAll(indexEntitySet);
+            indexMap.get(siteEntityId).clear();
+        }*/
 
     public Map<String, Integer> getAllLemmasPage(String html){
         Document document = ConnectionUtil.parse(html);
@@ -171,16 +217,6 @@ public class IndexingServiceImpl implements IndexingService {
                 .collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.summingInt(Map.Entry::getValue)));
     }
 
-    private void fillLemmasAndIndexTable(Site site){
-        String url = ReworkString.getStartPage(site.getUrl());
-        int siteEntityId = siteRepository.findSiteEntityByUrl(url).getId();
-        Map<String, LemmaEntity> lemmaEntityMap = lemmasMap.get(siteEntityId);
-        lemmaRepository.saveAll(lemmaEntityMap.values());
-        lemmasMap.get(siteEntityId).clear();
-        indexRepository.saveAll(indexMap.get(siteEntityId));
-        indexMap.get(siteEntityId).clear();
-    }
-
     private void clearLemmasAndIndexTable(Site site){
         String url = ReworkString.getStartPage(site.getUrl());
         int siteEntityId = siteRepository.findSiteEntityByUrl(url).getId();
@@ -191,7 +227,7 @@ public class IndexingServiceImpl implements IndexingService {
     //метод проверяет, завершилась ли индексация всех сайтов
     //если все сайты завершили индексацию, флаг isIndexing устанавливается в false
     private void markIndexingCompletionIfApplicable() {
-        log.info("MARK INDEXING COMPLETION IF APPROPRIATE");
+        //log.info("MARK INDEXING COMPLETION IF APPROPRIATE");
         List<SiteEntity> allSites = siteRepository.findAll();
         for (SiteEntity site : allSites) {
             if (site.getStatus().equals(Status.INDEXING)) {
@@ -203,8 +239,8 @@ public class IndexingServiceImpl implements IndexingService {
 
     //метод инициализирует необходимые коллекции и создает экземпляр SiteParserImp для индексации главной страницы сайта
     //он также обновляет статус сайта на INDEXING
-    private SiteParser initCollectionsForSiteAndCreateMainPageCrawlerUnit(Site siteToHandle) {
-        log.info("INIT COLLECTIONS FOR SITE " + siteToHandle.getName());
+    private SiteParser initCollectionsForSiteAndCreateMainPageSiteParser(Site siteToHandle) {
+        //log.info("INIT COLLECTIONS FOR SITE " + siteToHandle.getName());
         SiteEntity siteEntity = createAndPrepareSiteForIndexing(siteToHandle);
         siteStatusMap.put(siteEntity.getUrl(), Status.INDEXING);
         Map<String, LemmaEntity> lemmaEntityMap = new HashMap<>();
@@ -220,7 +256,7 @@ public class IndexingServiceImpl implements IndexingService {
     //если сайт уже существует в базе данных, его статус обновляется на INDEXING
     //если сайта нет в базе данных, создается новый объект SiteEntity
     private SiteEntity createAndPrepareSiteForIndexing(Site site) {
-        log.info("CREATE AND PREPARE SITE FOR INDEXING " + site.getName());
+        //log.info("CREATE AND PREPARE SITE FOR INDEXING " + site.getName());
         String homePage = ReworkString.getStartPage(site.getUrl());
         SiteEntity oldSiteEntity = siteRepository.findSiteEntityByUrl(homePage);
         if (oldSiteEntity != null) {
@@ -260,7 +296,7 @@ public class IndexingServiceImpl implements IndexingService {
     //генерируем текстовое сообщение об ошибке на основе переданного исключения
     //в сообщении указывается причина ошибки, и оно используется для сохранения информации об ошибке в базе данных
     private String getErrorMessage(Exception e) {
-        log.info("GET ERROR MESSAGE: " + e.toString());
+        //log.info("GET ERROR MESSAGE: " + e.toString());
         if (e instanceof CancellationException || e instanceof InterruptedException) {
             return properties.getInterruptedByUserMessage();
         } else if (e instanceof CertificateExpiredException || e instanceof SSLHandshakeException

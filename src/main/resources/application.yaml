@@ -26,7 +26,7 @@ spring:
     database: mysql
     show-sql: false
     hibernate:
-      ddl-auto: create
+      ddl-auto: create-drop
       dialect: org.hibernate.dialect.MySQL8Dialect
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
@@ -49,11 +49,6 @@ connect:
 
 file:
   extensions: pdf|PDF|docx?|DOCX?|xlsx?|XLSX?|pptx?|PPTX?|jpe?g|JPE?G|gif|GIF|png|PNG|mp3|MP3|mp4|MP4|aac|AAC|json|JSON|csv|CSV|exe|EXE|apk|APK|rar|RAR|zip|ZIP|xml|XML|jar|JAR|bin|BIN|svg|SVG|nc|NC|webp|WEBP|m|M|fig|FIG|eps|EPS
-
-selector:
-  weight:
-    title: 1.0
-    body: 0.8
 
 snippet:
   border: 5

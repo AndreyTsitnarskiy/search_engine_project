@@ -22,18 +22,18 @@ public class IndexEntity {
 
     @NonNull
     @ManyToOne
-    @JoinColumn(name = "page_id", referencedColumnName = "id", nullable = false)
+    @JoinColumn(name = "page_id", referencedColumnName = "id", nullable = false, foreignKey = @ForeignKey(name = "fk_page_id"))
     @OnDelete(action = OnDeleteAction.CASCADE)
     private PageEntity page;
 
     @NonNull
     @ManyToOne
-    @JoinColumn(name = "lemma_id", referencedColumnName = "id", nullable = false)
+    @JoinColumn(name = "lemma_id", referencedColumnName = "id", nullable = false, foreignKey = @ForeignKey(name = "fk_lemma_id"))
     @OnDelete(action = OnDeleteAction.CASCADE)
     private LemmaEntity lemma;
 
     @NonNull
-    @Column(name = "rank", nullable = false)
+    @Column(name = "rank_lemmas", nullable = false)
     private float rank_lemmas;
 
 }
