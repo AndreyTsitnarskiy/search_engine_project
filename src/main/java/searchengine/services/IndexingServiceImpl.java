@@ -126,7 +126,7 @@ public class IndexingServiceImpl implements IndexingService {
         webPages = Collections.synchronizedSet(new HashSet<>());;
         siteStatusMap = new ConcurrentHashMap<>();
         for (Site site : allSiteConfig) {
-            Thread thread = new Thread(() -> indexSingleSite(site));;
+            Thread thread = new Thread(() -> indexSingleSite(site));
             thread.setName(site.getName());
             thread.start();
         }
@@ -152,26 +152,31 @@ public class IndexingServiceImpl implements IndexingService {
         Set<IndexEntity> indexEntitySet = new HashSet<>();
         Map<String, Integer> lemmaEntityHashMap = getAllLemmasPage(html);
         Map<String, LemmaEntity> allLemmasBySiteId = lemmasMap.get(siteEntity.getId());
-        for (Map.Entry<String, Integer> lemmas : lemmaEntityHashMap.entrySet()){
-            LemmaEntity lemmaEntityFromAllLemmasMap = allLemmasBySiteId.get(lemmas);
-            log.info("LEMMA " + lemmaEntityFromAllLemmasMap.getLemma());
-            if (lemmaEntityFromAllLemmasMap == null) {
+        for (String lemmas : lemmaEntityHashMap.keySet()){
+            //LemmaEntity lemmaEntityFromAllLemmasMap = allLemmasBySiteId.get(lemmas);
+            //log.info("LEMMA " + lemmaEntityFromAllLemmasMap.getLemma());
+            if (!allLemmasBySiteId.containsKey(lemmas)) {
                 LemmaEntity lemmaEntity = new LemmaEntity();
-                lemmaEntity.setLemma(lemmas.getKey());
+                lemmaEntity.setLemma(lemmas);
                 lemmaEntity.setFrequency(1);
                 lemmaEntity.setSite(siteEntity);
                 lemmaRepository.save(lemmaEntity);
-                log.info("LEMMA CREATE " + lemmaEntity.getLemma());
-                lemmasMap.get(siteEntity.getId()).put(lemmas.getKey(), lemmaEntity);
-                float rank = returnRankLemmasForIndexTable(lemmaEntityHashMap, lemmas.getKey());
+                //allLemmasBySiteId.put(lemmas, lemmaEntity);
+                //lemmasMap.get(siteEntity.getId()).put(lemmas, lemmaEntity);
+                float rank = returnRankLemmasForIndexTable(lemmaEntityHashMap, lemmas);
                 IndexEntity indexEntity = new IndexEntity(pageEntity, lemmaEntity, rank);
-                indexRepository.save(indexEntity);
+                //indexRepository.save(indexEntity);
                 indexEntitySet.add(indexEntity);
             } else {
-                lemmaEntityFromAllLemmasMap.setFrequency(lemmaEntityFromAllLemmasMap.getFrequency() + 1);
+                lemmaRepository.updateFrequencyLemmasEntity(lemmas);
+                //lemmasMap.get(siteEntity.getId()).get(lemmas).setFrequency(count + 1);
             }
         }
         indexMap.put(siteEntity.getId(), indexEntitySet);
+    }
+
+    private void updateFrequencyLemma(int siteId, String lemma){
+
     }
 
     private float returnRankLemmasForIndexTable(Map<String, Integer> integerMap, String lemma){
@@ -194,16 +199,17 @@ public class IndexingServiceImpl implements IndexingService {
         indexMap.put(siteEntity.getId(), indexEntitySet);
     }*/
 
-    /*private void fillLemmasAndIndexTable(Site site){
+    public void fillLemmasAndIndexTable(Site site){
             String url = ReworkString.getStartPage(site.getUrl());
             int siteEntityId = siteRepository.findSiteEntityByUrl(url).getId();
+            log.info("SSSSSSSSSSSSSSSSSSSITE " + siteEntityId + " " + url + " result " + siteRepository.findSiteEntityByUrl(url).getId());
             Map<String, LemmaEntity> lemmaEntityMap = lemmasMap.get(siteEntityId);
             Set<IndexEntity> indexEntitySet = indexMap.get(siteEntityId);
             lemmaRepository.saveAll(lemmaEntityMap.values());
             lemmasMap.get(siteEntityId).clear();
             indexRepository.saveAll(indexEntitySet);
             indexMap.get(siteEntityId).clear();
-        }*/
+        }
 
     public Map<String, Integer> getAllLemmasPage(String html){
         Document document = ConnectionUtil.parse(html);
