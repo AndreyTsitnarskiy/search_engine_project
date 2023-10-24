@@ -3,18 +3,20 @@ package searchengine.services;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.jsoup.Connection;
 import org.jsoup.nodes.Document;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
 import searchengine.dto.statistics.ApiResponse;
+import searchengine.exceptions.SiteExceptions;
 import searchengine.model.*;
 import searchengine.repository.IndexRepository;
 import searchengine.repository.LemmaRepository;
 import searchengine.repository.PageRepository;
 import searchengine.repository.SiteRepository;
-import searchengine.services.intetface.IndexingService;
+import searchengine.services.interfaces.IndexingService;
 import searchengine.util.ConnectionUtil;
 import searchengine.util.Properties;
 import searchengine.util.ReworkString;
@@ -24,7 +26,10 @@ import java.security.cert.CertPathValidatorException;
 import java.security.cert.CertificateExpiredException;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -72,6 +77,18 @@ public class IndexingServiceImpl implements IndexingService {
     @Override
     public ResponseEntity<ApiResponse> indexPage(String path) {
         ApiResponse apiResponse = new ApiResponse();
+        try {
+            if (isPageBelongsToSiteSpecified(path)) {
+                new Thread(() -> indexSinglePage(path)).start();
+                apiResponse.setResult(true);
+            } else {
+                apiResponse.setResult(false);
+                apiResponse.setMessageError("Page is located outside the sites specified in the configuration file");
+            }
+        } catch (SiteExceptions siteExceptions) {
+            apiResponse.setResult(false);
+            apiResponse.setMessageError("Path incorrect");
+        }
         return ResponseEntity.ok(apiResponse);
     }
 
@@ -103,20 +120,79 @@ public class IndexingServiceImpl implements IndexingService {
         }
     }
 
+    public void indexSinglePage(String pageUrl) {
+        SiteEntity siteEntity = findOrCreateNewSiteEntity(pageUrl);
+        Connection connection = ConnectionUtil.getConnection(pageUrl, properties.getUserAgent(), properties.getReferrer());
+        Connection.Response response = ConnectionUtil.getResponse(connection);
+        Document document = ConnectionUtil.getDocument(connection);
+        String pathToSave = ReworkString.getPathToSave(pageUrl, siteEntity.getUrl());
+        int httpStatusCode = response.statusCode();
+
+        PageEntity pageEntityDeleted = deleteOldPageEntity(pathToSave, siteEntity);
+        String html = "";
+        PageEntity pageEntity = new PageEntity(siteEntity, pathToSave, httpStatusCode, html);
+        if (httpStatusCode != 200) {
+            savePageAndSiteStatusTime(pageEntity, html, siteEntity);
+        } else {
+            html = document.outerHtml();
+            if (pageEntityDeleted != null) {
+                reduceLemmaFrequenciesByOnePage(html, siteEntity.getId());
+            }
+            savePageAndSiteStatusTime(pageEntity, html, siteEntity);
+            extractLemmas(html, pageEntity, siteEntity);
+        }
+        fixSiteStatusAfterSinglePageIndexed(siteEntity);
+    }
+
+    private PageEntity deleteOldPageEntity(String path, SiteEntity siteEntity) {
+        PageEntity pageEntityToDelete = pageRepository.findPageEntityByPathAndSite(path, siteEntity);
+        if (pageEntityToDelete == null) {
+            return null;
+        }
+        pageRepository.delete(pageEntityToDelete);
+        return pageEntityToDelete;
+    }
+
+    private SiteEntity findOrCreateNewSiteEntity(String url) {
+        String siteUrlFromPageUrl = ReworkString.getStartPage(url);
+        SiteEntity siteEntity = siteRepository.findSiteEntityByUrl(siteUrlFromPageUrl);
+        if (siteEntity == null) {
+            siteEntity = createSiteToHandleSinglePage(siteUrlFromPageUrl);
+        }
+        return siteEntity;
+    }
+
+    private void reduceLemmaFrequenciesByOnePage(String html, int siteId) {
+        Map<String, Integer> allUniquePageLemmas = getAllLemmasPage(html); // index 2 contains all lemmas
+        lemmaRepository.reduceByOneLemmaFrequencies(siteId, allUniquePageLemmas.keySet());
+        lemmaRepository.deleteLemmasWithNoFrequencies(siteId);
+    }
+
+    private SiteEntity createSiteToHandleSinglePage(String siteHomePageToSave) {
+        SiteEntity siteEntity = new SiteEntity();
+        String currentSiteHomePage;
+        for (Site site : sites.getSites()) {
+            currentSiteHomePage = ReworkString.getStartPage(site.getUrl());
+            if (siteHomePageToSave.equalsIgnoreCase(currentSiteHomePage)) {
+                siteEntity = createAndPrepareSiteForIndexing(site);
+                break;
+            }
+        }
+        return siteEntity;
+    }
+
     private void indexSingleSite(Site site) {
         try {
             SiteParser pageParse = initCollectionsForSiteAndCreateMainPageSiteParser(site);
             forkJoinPool.invoke(pageParse);
-            log.info("Indexing completed " + lemmasMap.size());
             fillLemmasAndIndexTable(site);
-            log.info("Indexing completed " + site + " and size " + lemmasMap.size());
             markSiteAsIndexed(site);
+            log.info("Indexing completed for " + site.getName());
         } catch (Exception exception) {
             log.warn("Indexing FAILED " + site.getName() + " due to " + exception);
             fixSiteIndexingError(site, exception);
-            //clearLemmasAndIndexTable(site);
+            clearLemmasAndIndexTable(site);
         } finally {
-            //fillLemmasAndIndexTable(site);
             markIndexingCompletionIfApplicable();
         }
     }
@@ -161,10 +237,8 @@ public class IndexingServiceImpl implements IndexingService {
     public void fillLemmasAndIndexTable(Site site) {
         String url = ReworkString.getStartPage(site.getUrl());
         int siteEntityId = siteRepository.findSiteEntityByUrl(url).getId();
-        log.info("Fill lemmas " + site.getUrl());
         Map<String, LemmaEntity> lemmaEntityMap = lemmasMap.get(siteEntityId);
         Set<IndexEntity> indexEntitySet = indexMap.get(siteEntityId);
-        log.info("Fill lemmas and index table for " + siteEntityId + " " + lemmaEntityMap.size());
         lemmaRepository.saveAll(lemmaEntityMap.values());
         lemmasMap.get(siteEntityId).clear();
         indexRepository.saveAll(indexEntitySet);
@@ -188,16 +262,6 @@ public class IndexingServiceImpl implements IndexingService {
         int siteEntityId = siteRepository.findSiteEntityByUrl(url).getId();
         lemmasMap.get(siteEntityId).clear();
         indexMap.get(siteEntityId).clear();
-    }
-
-    private void markIndexingCompletionIfApplicable() {
-        List<SiteEntity> allSites = siteRepository.findAll();
-        for (SiteEntity site : allSites) {
-            if (site.getStatus().equals(Status.INDEXING)) {
-                return;
-            }
-        }
-        isIndexing = false;
     }
 
     private SiteParser initCollectionsForSiteAndCreateMainPageSiteParser(Site siteToHandle) {
@@ -237,6 +301,16 @@ public class IndexingServiceImpl implements IndexingService {
         siteRepository.save(siteEntity);
     }
 
+    private void markIndexingCompletionIfApplicable() {
+        List<SiteEntity> allSites = siteRepository.findAll();
+        for (SiteEntity site : allSites) {
+            if (site.getStatus().equals(Status.INDEXING)) {
+                return;
+            }
+        }
+        isIndexing = false;
+    }
+
     private void fixSiteIndexingError(Site site, Exception e) {
         String error = getErrorMessage(e);
         String homePage = ReworkString.getStartPage(site.getUrl());
@@ -256,6 +330,21 @@ public class IndexingServiceImpl implements IndexingService {
         } else {
             return properties.getUnknownError() + " (" + e + ")";
         }
+    }
+
+    private boolean isPageBelongsToSiteSpecified(String pageUrl) {
+        if (pageUrl == null || pageUrl.isEmpty()) {
+            return false;
+        }
+        List<Site> siteList = sites.getSites();
+        for (Site site : siteList) {
+            String siteHomePage = ReworkString.getStartPage(site.getUrl());
+            String passedHomePage = ReworkString.getStartPage(pageUrl);
+            if (passedHomePage.equalsIgnoreCase(siteHomePage)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void fixSiteStatusAfterSinglePageIndexed(SiteEntity site) {

@@ -3,7 +3,7 @@ package searchengine.services;
 import lombok.RequiredArgsConstructor;
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.springframework.stereotype.Service;
-import searchengine.services.intetface.LemmaService;
+import searchengine.services.interfaces.LemmaService;
 
 import java.util.*;
 

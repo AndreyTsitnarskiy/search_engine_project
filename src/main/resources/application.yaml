@@ -6,8 +6,10 @@ indexing-settings:
 #      name: PlayBack.Ru
 #    - url: https://www.lutherancathedral.ru/
 #      name: Кафедральный собор Святых Петра и Павла
-    - url: https://sinara-center.com/gallery/
-      name: синара центр
+#    - url: https://sinara-center.com/gallery/
+#      name: синара центр
+    - url: https://ugmk-telecom.ru/
+      name: УГМК-Телеком
 
 server:
   port: 8080

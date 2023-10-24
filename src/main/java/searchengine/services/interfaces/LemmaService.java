@@ -1,4 +1,4 @@
-package searchengine.services.intetface;
+package searchengine.services.interfaces;
 
 import java.util.HashMap;
 import java.util.Set;

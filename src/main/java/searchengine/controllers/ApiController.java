@@ -5,8 +5,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import searchengine.dto.statistics.ApiResponse;
 import searchengine.dto.statistics.StatisticsResponse;
-import searchengine.services.intetface.IndexingService;
-import searchengine.services.intetface.StatisticsService;
+import searchengine.services.interfaces.IndexingService;
+import searchengine.services.interfaces.StatisticsService;
 
 @RestController
 @RequestMapping("/api")
