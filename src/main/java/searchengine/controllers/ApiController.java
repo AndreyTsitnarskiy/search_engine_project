@@ -36,7 +36,7 @@ public class ApiController {
         return indexingService.stopIndexing();
     }
 
-    @PostMapping("/getIndexingPage")
+    @PostMapping("/indexPage")
     public ResponseEntity<ApiResponse> indexPage(@RequestParam(name = "url", required = false) String url){
         return indexingService.indexPage(url);
     }
