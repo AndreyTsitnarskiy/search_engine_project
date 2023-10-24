@@ -33,14 +33,14 @@ public class SiteParser extends RecursiveAction {
     @Override
     //асинхронная обработка сайта с обработкой возможных исключений
     protected void compute() {
-        log.info("CREATE NEW PARSER: " + pagePath);
+        //log.info("CREATE NEW PARSER: " + pagePath);
         try {
             Thread.sleep(500);
             handlePageData();
         } catch (UnsupportedMimeTypeException | ConnectException | SiteExceptions ignoredException) {
-            log.warn("EXCEPTION " + ignoredException + " IN CONNECTION WHILE HANDLING " + pagePath);
+            log.warn("WARNING " + ignoredException + " IN CONNECTION WHILE HANDLING " + pagePath);
         } catch (Exception exception) {
-            log.warn("EXCEPTION " + exception + " IN CONNECTION WHILE HANDLING " + pagePath +
+            log.warn("WARNING " + exception + " IN CONNECTION WHILE HANDLING " + pagePath +
                     " INDEXING FOR SITE " + siteEntity.getUrl() + " COMPLETED TO FAIL");
             indexingService.getSiteStatusMap().put(siteEntity.getUrl(), Status.FAILED);
             throw exception;
