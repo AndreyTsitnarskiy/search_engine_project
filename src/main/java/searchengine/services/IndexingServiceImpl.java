@@ -255,11 +255,8 @@ public class IndexingServiceImpl implements IndexingService {
     private void saveDataFromMapsToDatabase() {
         try {
             lock.lock();
-            for (Map.Entry<Integer, Map<String, LemmaEntity>> entry : lemmasMap.entrySet()) {
-                lemmaRepository.saveAll(entry.getValue().values());
-            }
-            for (Map.Entry<Integer, Set<IndexEntity>> entry : indexMap.entrySet()) {
-                indexRepository.saveAll(entry.getValue());
+            for (Site site : sites.getSites()) {
+                fillLemmasAndIndexTable(site);
             }
         } catch (Exception exception) {
             log.warn("Data saving FAILED due to " + exception);

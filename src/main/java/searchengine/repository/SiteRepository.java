@@ -6,8 +6,13 @@ import org.springframework.transaction.annotation.Transactional;
 import searchengine.model.SiteEntity;
 import searchengine.model.Status;
 
+import java.util.List;
+import java.util.Optional;
+
 @Repository
 public interface SiteRepository extends JpaRepository<SiteEntity, Long> {
+
+    Optional<List<SiteEntity>> findByName(String name);
 
     @Transactional
     void deleteSiteEntityByUrl(String url);

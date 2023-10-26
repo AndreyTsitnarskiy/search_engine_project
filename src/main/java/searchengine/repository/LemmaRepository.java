@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.model.LemmaEntity;
+import searchengine.model.SiteEntity;
 
 import java.util.Collection;
 
@@ -18,6 +19,8 @@ public interface LemmaRepository extends JpaRepository<LemmaEntity, Long> {
     @Query(value = "UPDATE lemmas SET frequency = frequency - 1 WHERE site_id = :siteId AND lemma IN :lemmas",
             nativeQuery = true)
     void reduceByOneLemmaFrequencies(@Param("siteId") int siteId, @Param("lemmas") Collection<String> lemmas);
+
+    int countLemmasEntitiesBySite(SiteEntity siteEntity);
 
     @Modifying
     @Transactional
