@@ -33,7 +33,6 @@ public class SiteParser extends RecursiveAction {
     @Override
     //асинхронная обработка сайта с обработкой возможных исключений
     protected void compute() {
-        //log.info("CREATE NEW PARSER: " + pagePath);
         try {
             Thread.sleep(500);
             handlePageData();

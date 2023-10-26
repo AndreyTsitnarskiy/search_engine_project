@@ -7,6 +7,7 @@ import org.jsoup.Connection;
 import org.jsoup.nodes.Document;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
 import searchengine.dto.statistics.ApiResponse;
@@ -26,10 +27,8 @@ import java.security.cert.CertPathValidatorException;
 import java.security.cert.CertificateExpiredException;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.*;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -39,13 +38,13 @@ import java.util.stream.Stream;
 public class IndexingServiceImpl implements IndexingService {
 
     private final SitesList sites;
-    private SiteParser siteParser;
     private ForkJoinPool forkJoinPool = new ForkJoinPool();
     private final PageRepository pageRepository;
     private final SiteRepository siteRepository;
     private final IndexRepository indexRepository;
     private final LemmaRepository lemmaRepository;
     private final LemmaServiceImpl lemmaService;
+    private ReentrantLock lock = new ReentrantLock();
 
     @Getter
     private final Properties properties;
@@ -62,6 +61,7 @@ public class IndexingServiceImpl implements IndexingService {
     @Override
     public ResponseEntity<ApiResponse> startIndexing() {
         ApiResponse apiResponse = new ApiResponse();
+        deleteAllDataFromDatabase();
         if (isIndexing) {
             apiResponse.setResult(false);
             apiResponse.setMessageError("Indexing already started");
@@ -101,6 +101,9 @@ public class IndexingServiceImpl implements IndexingService {
         if (isIndexing) {
             shutdown();
             apiResponse.setResult(true);
+            log.info("Indexing stopped");
+            saveDataFromMapsToDatabase();
+            log.info("Data saved");
         } else {
             apiResponse.setResult(false);
             apiResponse.setMessageError("Indexing not started");
@@ -209,7 +212,7 @@ public class IndexingServiceImpl implements IndexingService {
         }
     }
 
-    private void savePageAndSite(PageEntity pageEntity, String pageHtml, SiteEntity siteEntity) {
+    public void savePageAndSite(PageEntity pageEntity, String pageHtml, SiteEntity siteEntity) {
         pageEntity.setContent(pageHtml);
         pageRepository.save(pageEntity);
         siteEntity.setLocalDateTime(LocalDateTime.now());
@@ -238,7 +241,7 @@ public class IndexingServiceImpl implements IndexingService {
         }
     }
 
-    public void fillLemmasAndIndexTable(Site site) {
+    private void fillLemmasAndIndexTable(Site site) {
         String url = ReworkString.getStartPage(site.getUrl());
         int siteEntityId = siteRepository.findSiteEntityByUrl(url).getId();
         Map<String, LemmaEntity> lemmaEntityMap = lemmasMap.get(siteEntityId);
@@ -249,7 +252,23 @@ public class IndexingServiceImpl implements IndexingService {
         indexMap.get(siteEntityId).clear();
     }
 
-    public Map<String, Integer> getAllLemmasPage(String html) {
+    private void saveDataFromMapsToDatabase() {
+        try {
+            lock.lock();
+            for (Map.Entry<Integer, Map<String, LemmaEntity>> entry : lemmasMap.entrySet()) {
+                lemmaRepository.saveAll(entry.getValue().values());
+            }
+            for (Map.Entry<Integer, Set<IndexEntity>> entry : indexMap.entrySet()) {
+                indexRepository.saveAll(entry.getValue());
+            }
+        } catch (Exception exception) {
+            log.warn("Data saving FAILED due to " + exception);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private Map<String, Integer> getAllLemmasPage(String html) {
         Document document = ConnectionUtil.parse(html);
         String title = document.title();
         String body = document.body().text();
@@ -337,7 +356,6 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     private boolean isPageBelongsToSiteSpecified(String pageUrl) {
-        log.info("IS PAGE BELONGS TO SITE " + pageUrl);
         if (pageUrl == null || pageUrl.isEmpty()) {
             return false;
         }
@@ -345,9 +363,7 @@ public class IndexingServiceImpl implements IndexingService {
         for (Site site : siteList) {
             String siteHomePage = ReworkString.getStartPage(site.getUrl());
             String passedHomePage = ReworkString.getStartPage(pageUrl);
-            log.info(" SITE HOME PAGE: " + siteHomePage + " PASSED HOME PAGES: " + passedHomePage);
             if (passedHomePage.equalsIgnoreCase(siteHomePage)) {
-                log.info("RESULT: " + passedHomePage.equalsIgnoreCase(siteHomePage));
                 return true;
             }
         }
@@ -359,9 +375,23 @@ public class IndexingServiceImpl implements IndexingService {
         siteRepository.save(site);
     }
 
-    private void shutdown() {
-        forkJoinPool.shutdownNow();
+    @Transactional
+    private void deleteAllDataFromDatabase() {
+        lemmaRepository.deleteAll();
+        pageRepository.deleteAll();
+        indexRepository.deleteAll();
+        siteRepository.deleteAll();
     }
 
+    private void shutdown() {
+        log.info("Number of active threads: " + forkJoinPool.getPoolSize());
+        forkJoinPool.shutdownNow();
+        try {
+            forkJoinPool.awaitTermination(10, TimeUnit.SECONDS);
+            log.info("Number of active threads after stopped: " + forkJoinPool.getPoolSize());
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 }
 
