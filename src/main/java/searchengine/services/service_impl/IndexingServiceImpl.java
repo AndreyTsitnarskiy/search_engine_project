@@ -1,4 +1,4 @@
-package searchengine.services;
+package searchengine.services.service_impl;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -10,16 +10,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
-import searchengine.dto.statistics.ApiResponse;
+import searchengine.dto.api_response.ApiResponse;
 import searchengine.exceptions.SiteExceptions;
 import searchengine.model.*;
 import searchengine.repository.IndexRepository;
 import searchengine.repository.LemmaRepository;
 import searchengine.repository.PageRepository;
 import searchengine.repository.SiteRepository;
+import searchengine.services.SiteParser;
 import searchengine.services.interfaces.IndexingService;
 import searchengine.util.ConnectionUtil;
-import searchengine.util.Properties;
+import searchengine.util.PropertiesProject;
 import searchengine.util.ReworkString;
 
 import javax.net.ssl.SSLHandshakeException;
@@ -47,7 +48,7 @@ public class IndexingServiceImpl implements IndexingService {
     private ReentrantLock lock = new ReentrantLock();
 
     @Getter
-    private final Properties properties;
+    private final PropertiesProject propertiesProject;
     private volatile boolean isIndexing = false;
 
     @Getter
@@ -128,7 +129,7 @@ public class IndexingServiceImpl implements IndexingService {
 
     public void indexSinglePage(String pageUrl) {
         SiteEntity siteEntity = findOrCreateNewSiteEntity(pageUrl);
-        Connection connection = ConnectionUtil.getConnection(pageUrl, properties.getUserAgent(), properties.getReferrer());
+        Connection connection = ConnectionUtil.getConnection(pageUrl, propertiesProject.getUserAgent(), propertiesProject.getReferrer());
         Connection.Response response = ConnectionUtil.getResponse(connection);
         Document document = ConnectionUtil.getDocument(connection);
         String pathToSave = ReworkString.getPathToSave(pageUrl, siteEntity.getUrl());
@@ -343,12 +344,12 @@ public class IndexingServiceImpl implements IndexingService {
 
     private String getErrorMessage(Exception e) {
         if (e instanceof CancellationException || e instanceof InterruptedException) {
-            return properties.getInterruptedByUserMessage();
+            return propertiesProject.getInterruptedByUserMessage();
         } else if (e instanceof CertificateExpiredException || e instanceof SSLHandshakeException
                 || e instanceof CertPathValidatorException) {
-            return properties.getCertificateError();
+            return propertiesProject.getCertificateError();
         } else {
-            return properties.getUnknownError() + " (" + e + ")";
+            return propertiesProject.getUnknownError() + " (" + e + ")";
         }
     }
 

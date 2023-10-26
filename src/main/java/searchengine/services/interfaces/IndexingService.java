@@ -1,7 +1,7 @@
 package searchengine.services.interfaces;
 
 import org.springframework.http.ResponseEntity;
-import searchengine.dto.statistics.ApiResponse;
+import searchengine.dto.api_response.ApiResponse;
 
 
 public interface IndexingService {

@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import searchengine.dto.statistics.ApiResponse;
+import searchengine.dto.api_response.ApiResponse;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.services.interfaces.IndexingService;
 import searchengine.services.interfaces.StatisticsService;

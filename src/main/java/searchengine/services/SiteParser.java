@@ -12,6 +12,7 @@ import searchengine.exceptions.SiteExceptions;
 import searchengine.model.PageEntity;
 import searchengine.model.SiteEntity;
 import searchengine.model.Status;
+import searchengine.services.service_impl.IndexingServiceImpl;
 import searchengine.util.ConnectionUtil;
 import searchengine.util.ReworkString;
 
@@ -50,8 +51,8 @@ public class SiteParser extends RecursiveAction {
     private void handlePageData() throws IOException {
         log.info("HANDING PAGE DATA: " + pagePath);
         List<SiteParser> pagesList = new ArrayList<>();
-        String userAgent = indexingService.getProperties().getUserAgent();
-        String referrer = indexingService.getProperties().getReferrer();
+        String userAgent = indexingService.getPropertiesProject().getUserAgent();
+        String referrer = indexingService.getPropertiesProject().getReferrer();
         Connection connection = ConnectionUtil.getConnection(pagePath, userAgent, referrer);
         int httpStatusCode = connection.execute().statusCode();
         if (httpStatusCode != 200) {
@@ -79,7 +80,7 @@ public class SiteParser extends RecursiveAction {
 
     //метод обрабатывает все ссылки на странице и создает новые задачи парсинга для каждой ссылки
     private void handleAnchors(Elements elements, List<SiteParser> parserList) {
-        String fileExtensions = indexingService.getProperties().getFileExtensions();
+        String fileExtensions = indexingService.getPropertiesProject().getFileExtensions();
         for (Element anchor : elements) {
             String href = ReworkString.getHrefFromAnchor(anchor);
             if (ReworkString.isHrefValid(siteEntity.getUrl(), href, fileExtensions)

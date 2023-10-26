@@ -1,4 +1,4 @@
-package searchengine.services;
+package searchengine.services.service_impl;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.lucene.morphology.LuceneMorphology;

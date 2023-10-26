@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Getter
 @Setter
-public class Properties {
+public class PropertiesProject {
 
     @Value("${connect.user-agent}")
     private String userAgent;
