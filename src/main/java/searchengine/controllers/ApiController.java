@@ -1,6 +1,8 @@
 package searchengine.controllers;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import searchengine.dto.statistics.ApiResponse;
@@ -8,6 +10,10 @@ import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.services.interfaces.IndexingService;
 import searchengine.services.interfaces.StatisticsService;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+
+@Slf4j
 @RestController
 @RequestMapping("/api")
 public class ApiController {
@@ -36,8 +42,8 @@ public class ApiController {
         return indexingService.stopIndexing();
     }
 
-    @PostMapping("/indexPage")
-    public ResponseEntity<ApiResponse> indexPage(@RequestParam(name = "url", required = false) String url){
-        return indexingService.indexPage(url);
+    @PostMapping(value = "/indexPage", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public ResponseEntity<ApiResponse> indexPage(@RequestParam(value = "url") String url) {
+        return ResponseEntity.ok(indexingService.indexPage(URLDecoder.decode(url, StandardCharsets.UTF_8)).getBody());
     }
 }

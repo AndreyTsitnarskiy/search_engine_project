@@ -76,10 +76,12 @@ public class IndexingServiceImpl implements IndexingService {
 
     @Override
     public ResponseEntity<ApiResponse> indexPage(String path) {
+        log.info("INDEX PAGE: " + path);
         ApiResponse apiResponse = new ApiResponse();
         try {
             if (isPageBelongsToSiteSpecified(path)) {
                 new Thread(() -> indexSinglePage(path)).start();
+                log.info("Page indexed " + path);
                 apiResponse.setResult(true);
             } else {
                 apiResponse.setResult(false);
@@ -89,6 +91,7 @@ public class IndexingServiceImpl implements IndexingService {
             apiResponse.setResult(false);
             apiResponse.setMessageError("Path incorrect");
         }
+        log.info("END INDEX PAGE OFF: " + path);
         return ResponseEntity.ok(apiResponse);
     }
 
@@ -139,6 +142,7 @@ public class IndexingServiceImpl implements IndexingService {
                 reduceLemmaFrequenciesByOnePage(html, siteEntity.getId());
             }
             savePageAndSiteStatusTime(pageEntity, html, siteEntity);
+            log.info("Page indexed: " + pathToSave);
             extractLemmas(html, pageEntity, siteEntity);
         }
         fixSiteStatusAfterSinglePageIndexed(siteEntity);
@@ -333,6 +337,7 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     private boolean isPageBelongsToSiteSpecified(String pageUrl) {
+        log.info("IS PAGE BELONGS TO SITE " + pageUrl);
         if (pageUrl == null || pageUrl.isEmpty()) {
             return false;
         }
@@ -340,7 +345,9 @@ public class IndexingServiceImpl implements IndexingService {
         for (Site site : siteList) {
             String siteHomePage = ReworkString.getStartPage(site.getUrl());
             String passedHomePage = ReworkString.getStartPage(pageUrl);
+            log.info(" SITE HOME PAGE: " + siteHomePage + " PASSED HOME PAGES: " + passedHomePage);
             if (passedHomePage.equalsIgnoreCase(siteHomePage)) {
+                log.info("RESULT: " + passedHomePage.equalsIgnoreCase(siteHomePage));
                 return true;
             }
         }
