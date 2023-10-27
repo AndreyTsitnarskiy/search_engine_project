@@ -14,7 +14,7 @@ public interface IndexRepository extends JpaRepository<IndexEntity, Integer> {
     @Query(value = "SELECT page_id FROM Search_index WHERE lemma_id IN :lemmaIds", nativeQuery = true)
     List<Integer> findPagesIdByLemmaIdIn(@Param("lemmaIds") long lemmaIds);
 
-    @Query(value = "SELECT page_id FROM Search_index WHERE lemma_id IN :lemmaIds", nativeQuery = true)
+    @Query(value = "SELECT * FROM Search_index WHERE lemma_id IN :lemmaIds", nativeQuery = true)
     List<IndexEntity> findPagesIdByLemmaIdIn(@Param("lemmaIds") long lemmaIds, @Param("siteId") int siteId,
                                          @Param("pages") List<Integer> pages);
 }
