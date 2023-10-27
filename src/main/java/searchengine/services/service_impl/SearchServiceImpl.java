@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import searchengine.dto.api_search.ApiSearchResponse;
+import searchengine.model.LemmaEntity;
 import searchengine.model.SiteEntity;
 import searchengine.repository.IndexRepository;
 import searchengine.repository.LemmaRepository;
@@ -12,6 +13,8 @@ import searchengine.repository.SiteRepository;
 import searchengine.services.interfaces.LemmaService;
 import searchengine.services.interfaces.SearchService;
 import searchengine.util.PropertiesProject;
+
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +27,7 @@ public class SearchServiceImpl implements SearchService {
     private final PropertiesProject propertiesProject;
     private final LemmaService lemmaService;
     @Override
-    public ResponseEntity<ApiSearchResponse> search(String query, String url) {
+    public ResponseEntity<ApiSearchResponse> search(String query, String url, int offset, int limit) {
         ApiSearchResponse apiSearchResponse = new ApiSearchResponse();
         apiSearchResponse.setResult(false);
         if(!checkQuery(query)){
@@ -48,4 +51,33 @@ public class SearchServiceImpl implements SearchService {
         }
         return true;
     }
+
+    private SiteEntity getSiteEntityByUrl(String url){
+        return siteRepository.findSiteEntityByUrl(url + "/");
+    }
+
+    private List<LemmaEntity> getQueryWords(String query, SiteEntity siteEntity){
+        Set<String> queryWords = lemmaService.getLemmaList(query);
+        return lemmaRepository.findByLemmaName(siteEntity.getId(), queryWords);
+    }
+
+    private Map<Integer, Integer> getAndSortPagesRelated(List<LemmaEntity> queryWords, SiteEntity siteEntity, List<Integer> listPageId){
+        for (LemmaEntity lemmaEntity : queryWords) {
+            listPageId = indexRepository.findPagesIdByLemmaIdIn(lemmaEntity.getId());
+        }
+        Map<Integer, Integer> result = new HashMap<>();
+        for (Integer pageId : listPageId) {
+            result.put(pageId, 0);
+        }
+        return result;
+    }
+
+    private List<Integer> getListPageId(String query, SiteEntity siteEntity){
+        Set<String> queryWords = lemmaService.getLemmaList(query);
+        LemmaEntity lemmaEntity = lemmaRepository.findByMinFrequency(siteEntity.getId(), queryWords);
+        return indexRepository.findPagesIdByLemmaIdIn(lemmaEntity.getId());
+    }
+
+
+
 }

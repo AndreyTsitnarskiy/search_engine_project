@@ -11,7 +11,6 @@ import java.util.Set;
 @UtilityClass
 public class ReworkString {
     private final String SLASH = "/";
-    private final StringBuilder BUILDER = new StringBuilder();
 
     public String cutSlash(String siteNameWithSlash) {
         return siteNameWithSlash.substring(0, siteNameWithSlash.length() - 1);
@@ -39,10 +38,6 @@ public class ReworkString {
             throw new SiteExceptions("Path too long (length is " + path.length() + ")");
         }
         return path;
-    }
-
-    public boolean isStringExists(String s) {
-        return !(s == null || s.matches("\\s+") || s.isEmpty());
     }
 
     public String getPathToSave(String pageUrl, String startPage) {
