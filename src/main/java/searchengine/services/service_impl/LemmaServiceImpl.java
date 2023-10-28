@@ -1,12 +1,14 @@
 package searchengine.services.service_impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.springframework.stereotype.Service;
 import searchengine.services.interfaces.LemmaService;
 
 import java.util.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LemmaServiceImpl implements LemmaService {
@@ -50,8 +52,10 @@ public class LemmaServiceImpl implements LemmaService {
         Set<String> lemmaSet = new HashSet<>();
         for (String word : words) {
             if(!word.isEmpty() && isRussianWord(word)) {
-                List<String> worldInfo = morphology.getMorphInfo(word);
+                log.info("Word: " + word);
+                List<String> worldInfo = morphology.getNormalForms(word);
                 if(anyWordBaseBelongToParticle(worldInfo)) {
+                    log.info("Particle: " + worldInfo.get(0));
                     lemmaSet.add(word);
                     continue;
                 }

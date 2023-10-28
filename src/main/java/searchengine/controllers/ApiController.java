@@ -53,9 +53,13 @@ public class ApiController {
 
     @GetMapping("/search")
     public ResponseEntity<ApiSearchResponse> search(@RequestParam(value = "query", required = false) String query,
-                                                    @RequestParam(value = "url", required = false) String url,
+                                                    @RequestParam(value = "site", required = false) String url,
                                                     @RequestParam(value = "offset", required = false) Integer offset,
                                                     @RequestParam(value = "limit", required = false) Integer limit) {
-            return ResponseEntity.ok(searchService.search(query, url, offset, limit).getBody());
+        log.info("Query: " + query + " URL: " + url);
+        if (url != null && !url.isEmpty()) {
+            url = URLDecoder.decode(url, StandardCharsets.UTF_8);
+        }
+            return ResponseEntity.ok(searchService.search(query, URLDecoder.decode(url, StandardCharsets.UTF_8), offset, limit).getBody());
         }
     }
