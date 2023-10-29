@@ -83,12 +83,14 @@ public class SearchServiceImpl implements SearchService {
             log.info("lemmaEntity: " + lemmaEntity.getId());
             long lemmaId = lemmaEntity.getId();
             List<Integer> listPageId = indexRepository.findPagesIdByLemmaIdIn(lemmaId);
-            List<IndexEntity> indexEntities = indexRepository.findPagesIdByLemmaIdIn(lemmaEntity.getId(), siteEntity.getId(), listPageId);
+            List<IndexEntity> indexEntities = indexRepository.findPagesIdByLemmaIdInIsPageList(lemmaEntity.getId(),
+                    listPageId);
             result.put(lemmaEntity, indexEntities);
         }
         return result;
     }
 
+    //check point
     private Map<Integer, Float> calculateAbsolutePages(String query, SiteEntity siteEntity){
         log.info("calculateAbsolutePages");
         Map<Integer, Float> result = new HashMap<>();
