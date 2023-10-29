@@ -91,19 +91,26 @@ public class SearchServiceImpl implements SearchService {
     }
 
     //check point
-    private Map<Integer, Float> calculateAbsolutePages(String query, SiteEntity siteEntity){
+    private Map<Integer, Float> calculateAbsolutePages(String query, SiteEntity siteEntity) {
         log.info("calculateAbsolutePages");
         Map<Integer, Float> result = new HashMap<>();
         Map<LemmaEntity, List<IndexEntity>> allLemmasAndValuePages = getAllIndexesForLemma(getQueryWords(query, siteEntity), siteEntity);
         List<Integer> listNumberPages = getListPageId(query, siteEntity);
-        for (int i = 0; i < listNumberPages.size(); i++) {
+
+        for (Integer pageId : listNumberPages) {
             float absolute = 0;
+
             for (Map.Entry<LemmaEntity, List<IndexEntity>> entry : allLemmasAndValuePages.entrySet()) {
-                if (entry.getValue().equals(listNumberPages.get(i))) {
-                    absolute += entry.getValue().get(listNumberPages.get(i)).getRank_lemmas();
+                List<IndexEntity> indexes = entry.getValue();
+
+                for (IndexEntity index : indexes) {
+                    if (index.getPage().getId() == pageId) {
+                        log.info("Page ID: " + pageId + ", Rank: " + index.getRank_lemmas());
+                        absolute += index.getRank_lemmas();
+                    }
                 }
             }
-            result.put(listNumberPages.get(i), absolute);
+            result.put(pageId, absolute);
         }
         log.info("result: " + result.size() + " VALUES " + result.values());
         return result;
