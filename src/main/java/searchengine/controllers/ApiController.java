@@ -56,7 +56,6 @@ public class ApiController {
                                                     @RequestParam(value = "site", required = false) String url,
                                                     @RequestParam(value = "offset", required = false) Integer offset,
                                                     @RequestParam(value = "limit", required = false) Integer limit) {
-        log.info("Query: " + query + " URL: " + url);
         if (url != null && !url.isEmpty()) {
             url = URLDecoder.decode(url, StandardCharsets.UTF_8);
         }

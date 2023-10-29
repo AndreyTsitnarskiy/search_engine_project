@@ -52,10 +52,8 @@ public class LemmaServiceImpl implements LemmaService {
         Set<String> lemmaSet = new HashSet<>();
         for (String word : words) {
             if(!word.isEmpty() && isRussianWord(word)) {
-                log.info("Word: " + word);
                 List<String> worldInfo = morphology.getNormalForms(word);
                 if(anyWordBaseBelongToParticle(worldInfo)) {
-                    log.info("Particle: " + worldInfo.get(0));
                     lemmaSet.add(word);
                     continue;
                 }

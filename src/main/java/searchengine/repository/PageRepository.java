@@ -8,7 +8,7 @@ import searchengine.model.PageEntity;
 import searchengine.model.SiteEntity;
 
 @Repository
-public interface PageRepository extends JpaRepository<PageEntity, Long> {
+public interface PageRepository extends JpaRepository<PageEntity, Integer> {
 
     PageEntity findPageEntityByPathAndSite(String path, SiteEntity siteEntity);
 
