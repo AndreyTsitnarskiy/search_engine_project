@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import searchengine.dto.api_search.ApiSearchResponse;
+import searchengine.dto.api_search.ApiSearchResult;
 import searchengine.model.IndexEntity;
 import searchengine.model.LemmaEntity;
 import searchengine.model.PageEntity;
@@ -17,10 +18,7 @@ import searchengine.services.interfaces.LemmaService;
 import searchengine.services.interfaces.SearchService;
 import searchengine.util.PropertiesProject;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -43,10 +41,39 @@ public class SearchServiceImpl implements SearchService {
         } else if (checkStatusSites(url)){
             apiSearchResponse.setMessageError("Page is located outside the sites specified in the configuration file");
         } else {
-            //apiSearchResponse = search(query, url);
-            findPagesByRelativePages(query, getSiteEntityByUrl(url));
+            apiSearchResponse = getApiSearchResponse(query, url);
         }
         return ResponseEntity.ok(apiSearchResponse);
+    }
+
+    private ApiSearchResponse getApiSearchResponse(String query, String url){
+        ApiSearchResponse apiSearchResponse = new ApiSearchResponse();
+        apiSearchResponse.setResult(true);
+        List<ApiSearchResult> resultData = search(query, url);
+        apiSearchResponse.setCount(resultData.size());
+        apiSearchResponse.setData(resultData);
+        apiSearchResponse.setMessageError(null);
+        return apiSearchResponse;
+    }
+
+    //формирование списка с результатами
+    private List<ApiSearchResult> search(String query, String url){
+        List<ApiSearchResult> resultData = new ArrayList<>();
+        Map<Float, PageEntity> execData = findPagesByRelativePages(query, getSiteEntityByUrl(url));
+        for (Map.Entry<Float, PageEntity> entry : execData.entrySet()) {
+            ApiSearchResult apiSearchResult = new ApiSearchResult();
+            apiSearchResult.setUrl(fullUri(url, entry.getValue().getPath()));
+            apiSearchResult.setRelevance(entry.getKey());
+            apiSearchResult.setTitle(null);
+            apiSearchResult.setSnippet(null);
+            resultData.add(apiSearchResult);
+        }
+        return resultData;
+    }
+
+    //полная ссылка
+    private String fullUri(String url, String path){
+        return url.substring(0, url.length() - 1) + path;
     }
 
     //прверка строки запроса
@@ -151,6 +178,7 @@ public class SearchServiceImpl implements SearchService {
         return result;
     }
 
+    //собрать все сущности страниц
     private Map<Float, PageEntity> findPagesByRelativePages(String query, SiteEntity siteEntity) {
         Map<Integer, Float> data = calculateRelativePages(query, siteEntity);
         Map<Float, PageEntity> result = new HashMap<>();
@@ -158,7 +186,7 @@ public class SearchServiceImpl implements SearchService {
             result.put(entry.getValue(), pageRepository.findById(entry.getKey()).get());
             log.info("result from findPagesByRelativePages: "
                     + siteEntity.getUrl().substring(0, siteEntity.getUrl().length() - 1)
-                    + " " + pageRepository.findById(entry.getKey()).get().getPath());
+                    + pageRepository.findById(entry.getKey()).get().getPath());
         }
         return result;
     }
