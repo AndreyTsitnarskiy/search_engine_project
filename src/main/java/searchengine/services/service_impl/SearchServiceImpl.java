@@ -16,6 +16,7 @@ import searchengine.repository.PageRepository;
 import searchengine.repository.SiteRepository;
 import searchengine.services.interfaces.LemmaService;
 import searchengine.services.interfaces.SearchService;
+import searchengine.util.KMPSnippet;
 import searchengine.util.PropertiesProject;
 
 import java.util.*;
@@ -30,6 +31,7 @@ public class SearchServiceImpl implements SearchService {
     private final LemmaRepository lemmaRepository;
     private final IndexRepository indexRepository;
     private final PropertiesProject propertiesProject;
+    private final KMPSnippet kmpSnippet;
     private final LemmaService lemmaService;
 
     @Override
@@ -46,6 +48,7 @@ public class SearchServiceImpl implements SearchService {
         return ResponseEntity.ok(apiSearchResponse);
     }
 
+    //возвращаю ответ
     private ApiSearchResponse getApiSearchResponse(String query, String url){
         ApiSearchResponse apiSearchResponse = new ApiSearchResponse();
         apiSearchResponse.setResult(true);
@@ -65,10 +68,16 @@ public class SearchServiceImpl implements SearchService {
             apiSearchResult.setUrl(fullUri(url, entry.getValue().getPath()));
             apiSearchResult.setRelevance(entry.getKey());
             apiSearchResult.setTitle(null);
-            apiSearchResult.setSnippet(null);
+            apiSearchResult.setSnippet(execSnippet(query, getSiteEntityByUrl(url), entry.getValue()));
             resultData.add(apiSearchResult);
         }
         return resultData;
+    }
+
+    private String execSnippet(String query, SiteEntity siteEntity, PageEntity pageEntity){
+        Set<String> queryWords = lemmaService.getLemmaList(query);
+        LemmaEntity lemmaEntity = lemmaRepository.findByMinFrequency(siteEntity.getId(), queryWords);
+        return kmpSnippet.cutSnippet(pageEntity.getContent(), lemmaEntity.getLemma());
     }
 
     //полная ссылка
