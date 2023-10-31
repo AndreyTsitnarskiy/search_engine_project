@@ -1,6 +1,8 @@
 package searchengine.util;
 
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -10,12 +12,32 @@ import java.util.List;
 @Component
 public class KMPSnippet {
 
-   public String cutSnippet(String text, String lemma) {
-        List<Integer> result = KMPSearch(text, lemma);
-        int startIndex = result.get(0) - 15;
-        int finishIndex = result.get(0) + 15;
-        log.info("startIndex: " + startIndex + " finishIndex: " + finishIndex + " result: " + result.get(0) + " " + result.get(1) + " text: " + text.length());
-        return text.substring(startIndex, finishIndex);
+    public String cutSnippet(String text, String lemma) {
+        StringBuilder sb = new StringBuilder();
+        Document document = Jsoup.parse(text);
+        String body = document.body().text();
+        List<Integer> result = KMPSearch(body, lemma);
+        log.info("body length: " + body.length());
+        log.info("result: " + result.get(0));
+        int startSubString = result.get(0);
+        if (result.get(0) > 40) {
+            startSubString = startSubString - 40;
+        }
+        int finishSubString = result.get(0);
+        int startSubString2 = result.get(0) + lemma.length();
+        int finishSubString2 = result.get(0) + lemma.length();
+        if (result.get(0) + lemma.length() < body.length()) {
+            finishSubString2 = finishSubString2 + 40;
+        }
+
+        sb.append("... ")
+                .append(body.substring(startSubString, finishSubString))
+                .append("<b>")
+                .append(lemma)
+                .append("</b>")
+                .append(body.substring(startSubString2, finishSubString2))
+                .append(" ...");
+        return sb.toString();
     }
 
     private int[] prefixFunction(String lemma) {
