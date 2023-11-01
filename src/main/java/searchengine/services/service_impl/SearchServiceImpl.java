@@ -68,13 +68,17 @@ public class SearchServiceImpl implements SearchService {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
         SiteEntity siteEntity = getSiteEntityByUrl(url);
         for (Map.Entry<Float, PageEntity> entry : sortedMap.entrySet()) {
+            String snippet = execSnippet(query, siteEntity, entry.getValue());
+            if(snippet == null || snippet.isEmpty()){
+              continue;
+            }
             ApiSearchResult apiSearchResult = new ApiSearchResult();
             apiSearchResult.setSite(siteEntity.getUrl().substring(0, siteEntity.getUrl().length() - 1));
             apiSearchResult.setSiteName(siteEntity.getName());
             apiSearchResult.setUri(entry.getValue().getPath());
             apiSearchResult.setRelevance(entry.getKey());
             apiSearchResult.setTitle(execTitle(entry.getValue()));
-            apiSearchResult.setSnippet(execSnippet(query, getSiteEntityByUrl(url), entry.getValue()));
+            apiSearchResult.setSnippet(snippet);
             resultData.add(apiSearchResult);
         }
         return resultData;
@@ -88,7 +92,11 @@ public class SearchServiceImpl implements SearchService {
     private String execSnippet(String query, SiteEntity siteEntity, PageEntity pageEntity){
         Set<String> queryWords = lemmaService.getLemmaList(query);
         LemmaEntity lemmaEntity = lemmaRepository.findByMinFrequency(siteEntity.getId(), queryWords);
-        return kmpSnippet.cutSnippet(pageEntity.getContent(), lemmaEntity.getLemma());
+        String pathToSave = kmpSnippet.idleSnippet(pageEntity.getContent(), lemmaEntity.getLemma());
+        if (pathToSave == null || pathToSave.isEmpty()){
+            return null;
+        }
+        return pathToSave;
     }
 
     private boolean checkQuery(String query){
