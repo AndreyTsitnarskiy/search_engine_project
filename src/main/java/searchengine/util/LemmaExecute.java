@@ -1,24 +1,31 @@
-package searchengine.services.service_impl;
+package searchengine.util;
 
-import lombok.RequiredArgsConstructor;
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.lucene.morphology.LuceneMorphology;
-import org.springframework.stereotype.Service;
-import searchengine.services.interfaces.LemmaService;
+import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 
+import java.io.IOException;
 import java.util.*;
 
 @Slf4j
-@Service
-@RequiredArgsConstructor
-public class LemmaServiceImpl implements LemmaService {
+@UtilityClass
+public class LemmaExecute {
 
-    private final LuceneMorphology morphology;
+    private LuceneMorphology morphology;
     private static final String WORD_TYPE_REGEX = "\\W\\w&&[^а-яА-Я\\s]";
     private static final String[] particlesNames = new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ"};
 
-    @Override
-    public HashMap<String, Integer> getLemmaMap(String html) {
+    static {
+        try {
+            morphology = new RussianLuceneMorphology();
+        } catch (IOException e) {
+            log.error("Error initializing LuceneMorphology", e);
+        }
+    }
+
+    public static HashMap<String, Integer> getLemmaMap(String html) {
+        log.info("getLemmaMap method started");
         HashMap<String, Integer> lemmaMap = new HashMap<>();
         String[] words = arrayRussianWorlds(html);
         for (String word : words) {
@@ -46,8 +53,7 @@ public class LemmaServiceImpl implements LemmaService {
         return lemmaMap;
     }
 
-    @Override
-    public Set<String> getLemmaList(String text) {
+    public static Set<String> getLemmaList(String text) {
         String[] words = arrayRussianWorlds(text);
         Set<String> lemmaSet = new HashSet<>();
         for (String word : words) {
@@ -88,7 +94,7 @@ public class LemmaServiceImpl implements LemmaService {
     }
 
     private boolean anyWordBaseBelongToParticle(List<String> wordBaseForms) {
-        return wordBaseForms.stream().anyMatch(this::isParticle);
+        return wordBaseForms.stream().anyMatch(LemmaExecute::isParticle);
     }
 }
 

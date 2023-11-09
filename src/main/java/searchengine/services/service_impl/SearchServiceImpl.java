@@ -16,9 +16,9 @@ import searchengine.repository.IndexRepository;
 import searchengine.repository.LemmaRepository;
 import searchengine.repository.PageRepository;
 import searchengine.repository.SiteRepository;
-import searchengine.services.interfaces.LemmaService;
 import searchengine.services.interfaces.SearchService;
 import searchengine.util.KMPSnippet;
+import searchengine.util.LemmaExecute;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -33,7 +33,6 @@ public class SearchServiceImpl implements SearchService {
     private final LemmaRepository lemmaRepository;
     private final IndexRepository indexRepository;
     private final KMPSnippet kmpSnippet;
-    private final LemmaService lemmaService;
 
     @Override
     public ResponseEntity<ApiSearchResponse> search(String query, String url, int offset, int limit) {
@@ -90,7 +89,7 @@ public class SearchServiceImpl implements SearchService {
     }
 
     private String execSnippet(String query, SiteEntity siteEntity, PageEntity pageEntity){
-        Set<String> queryWords = lemmaService.getLemmaList(query);
+        Set<String> queryWords = LemmaExecute.getLemmaList(query);
         LemmaEntity lemmaEntity = lemmaRepository.findByMinFrequency(siteEntity.getId(), queryWords);
         String pathToSave = kmpSnippet.idleSnippet(pageEntity.getContent(), lemmaEntity.getLemma());
         if (pathToSave == null || pathToSave.isEmpty()){
@@ -120,12 +119,12 @@ public class SearchServiceImpl implements SearchService {
     }
 
     private List<LemmaEntity> getQueryWords(String query, SiteEntity siteEntity){
-        Set<String> queryWords = lemmaService.getLemmaList(query);
+        Set<String> queryWords = LemmaExecute.getLemmaList(query);
         return lemmaRepository.findByLemmaName(siteEntity.getId(), queryWords);
     }
 
     private List<Integer> getListPageId(String query, SiteEntity siteEntity){
-        Set<String> queryWords = lemmaService.getLemmaList(query);
+        Set<String> queryWords = LemmaExecute.getLemmaList(query);
         log.info("queryWords: " + queryWords + " query: " + queryWords.size());
         LemmaEntity lemmaEntity = lemmaRepository.findByMinFrequency(siteEntity.getId(), queryWords);
         return indexRepository.findPagesIdByLemmaIdIn(lemmaEntity.getId());

@@ -20,6 +20,7 @@ import searchengine.repository.SiteRepository;
 import searchengine.services.SiteParser;
 import searchengine.services.interfaces.IndexingService;
 import searchengine.util.ConnectionUtil;
+import searchengine.util.LemmaExecute;
 import searchengine.util.PropertiesProject;
 import searchengine.util.ReworkString;
 
@@ -44,7 +45,6 @@ public class IndexingServiceImpl implements IndexingService {
     private final SiteRepository siteRepository;
     private final IndexRepository indexRepository;
     private final LemmaRepository lemmaRepository;
-    private final LemmaServiceImpl lemmaService;
     private ReentrantLock lock = new ReentrantLock();
 
     @Getter
@@ -221,7 +221,8 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     public void extractLemmas(String html, PageEntity pageEntity, SiteEntity siteEntity) {
-        Map<String, Integer> lemmaEntityHashMap = getAllLemmasPage(html); //Леммы и частота их на странице
+        log.info("Extracting lemmas for " + pageEntity.getPath() + " method extractLemmas");
+        Map<String, Integer> lemmaEntityHashMap = getAllLemmasPage(html);
         for (String lemmas : lemmaEntityHashMap.keySet()) {
             Map<String, LemmaEntity> allLemmasBySiteId = lemmasMap.get(siteEntity.getId());
             LemmaEntity lemmaEntity = allLemmasBySiteId.get(lemmas);
@@ -267,12 +268,13 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     private Map<String, Integer> getAllLemmasPage(String html) {
+        log.info("Extracting lemmas for method getAllLemmasPage");
         Document document = ConnectionUtil.parse(html);
         String title = document.title();
         String body = document.body().text();
 
-        Map<String, Integer> titleLemmas = lemmaService.getLemmaMap(title);
-        Map<String, Integer> bodyLemmas = lemmaService.getLemmaMap(body);
+        Map<String, Integer> titleLemmas = LemmaExecute.getLemmaMap(title);
+        Map<String, Integer> bodyLemmas = LemmaExecute.getLemmaMap(body);
 
         return Stream.concat(titleLemmas.entrySet().stream(), bodyLemmas.entrySet().stream())
                 .collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.summingInt(Map.Entry::getValue)));
