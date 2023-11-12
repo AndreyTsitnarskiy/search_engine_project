@@ -25,7 +25,6 @@ public class LemmaExecute {
     }
 
     public static HashMap<String, Integer> getLemmaMap(String html) {
-        log.info("getLemmaMap method started");
         HashMap<String, Integer> lemmaMap = new HashMap<>();
         String[] words = arrayRussianWorlds(html);
         for (String word : words) {

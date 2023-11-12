@@ -16,9 +16,6 @@ public class PropertiesProject {
     @Value("${connect.referrer}")
     private String referrer;
 
-    @Value("${snippet.border}")
-    private int snippetBorder;
-
     @Value("${file.extensions}")
     private String fileExtensions;
 
@@ -30,7 +27,4 @@ public class PropertiesProject {
 
     @Value("${error.unknown}")
     private String unknownError;
-
-    @Value("${page.frequency.limit}")
-    private int pageFrequencyLimit;
 }

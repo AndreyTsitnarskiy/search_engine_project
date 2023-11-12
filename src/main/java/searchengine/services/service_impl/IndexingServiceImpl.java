@@ -135,14 +135,14 @@ public class IndexingServiceImpl implements IndexingService {
         String pathToSave = ReworkString.getPathToSave(pageUrl, siteEntity.getUrl());
         int httpStatusCode = response.statusCode();
 
-        PageEntity pageEntityDeleted = deleteOldPageEntity(pathToSave, siteEntity);
+        PageEntity deletePageEntity = deleteOldPageEntity(pathToSave, siteEntity);
         String html = "";
         PageEntity pageEntity = new PageEntity(siteEntity, pathToSave, httpStatusCode, html);
         if (httpStatusCode != 200) {
             savePageAndSiteStatusTime(pageEntity, html, siteEntity);
         } else {
             html = document.outerHtml();
-            if (pageEntityDeleted != null) {
+            if (deletePageEntity != null) {
                 reduceLemmaFrequenciesByOnePage(html, siteEntity.getId());
             }
             savePageAndSiteStatusTime(pageEntity, html, siteEntity);
@@ -153,12 +153,12 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     private PageEntity deleteOldPageEntity(String path, SiteEntity siteEntity) {
-        PageEntity pageEntityToDelete = pageRepository.findPageEntityByPathAndSite(path, siteEntity);
-        if (pageEntityToDelete == null) {
+        PageEntity deletePageEntity = pageRepository.findPageEntityByPathAndSite(path, siteEntity);
+        if (deletePageEntity == null) {
             return null;
         }
-        pageRepository.delete(pageEntityToDelete);
-        return pageEntityToDelete;
+        pageRepository.delete(deletePageEntity);
+        return deletePageEntity;
     }
 
     private SiteEntity findOrCreateNewSiteEntity(String url) {
@@ -220,8 +220,19 @@ public class IndexingServiceImpl implements IndexingService {
         siteRepository.save(siteEntity);
     }
 
+    private Map<String, Integer> getAllLemmasPage(String html) {
+        Document document = ConnectionUtil.parse(html);
+        String title = document.title();
+        String body = document.body().text();
+
+        Map<String, Integer> titleLemmas = LemmaExecute.getLemmaMap(title);
+        Map<String, Integer> bodyLemmas = LemmaExecute.getLemmaMap(body);
+
+        return Stream.concat(titleLemmas.entrySet().stream(), bodyLemmas.entrySet().stream())
+                .collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.summingInt(Map.Entry::getValue)));
+    }
+
     public void extractLemmas(String html, PageEntity pageEntity, SiteEntity siteEntity) {
-        log.info("Extracting lemmas for " + pageEntity.getPath() + " method extractLemmas");
         Map<String, Integer> lemmaEntityHashMap = getAllLemmasPage(html);
         for (String lemmas : lemmaEntityHashMap.keySet()) {
             Map<String, LemmaEntity> allLemmasBySiteId = lemmasMap.get(siteEntity.getId());
@@ -265,19 +276,6 @@ public class IndexingServiceImpl implements IndexingService {
         } finally {
             lock.unlock();
         }
-    }
-
-    private Map<String, Integer> getAllLemmasPage(String html) {
-        log.info("Extracting lemmas for method getAllLemmasPage");
-        Document document = ConnectionUtil.parse(html);
-        String title = document.title();
-        String body = document.body().text();
-
-        Map<String, Integer> titleLemmas = LemmaExecute.getLemmaMap(title);
-        Map<String, Integer> bodyLemmas = LemmaExecute.getLemmaMap(body);
-
-        return Stream.concat(titleLemmas.entrySet().stream(), bodyLemmas.entrySet().stream())
-                .collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.summingInt(Map.Entry::getValue)));
     }
 
     private void clearLemmasAndIndexTable(Site site) {
@@ -384,11 +382,9 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     private void shutdown() {
-        log.info("Number of active threads: " + forkJoinPool.getPoolSize());
         forkJoinPool.shutdownNow();
         try {
             forkJoinPool.awaitTermination(10, TimeUnit.SECONDS);
-            log.info("Number of active threads after stopped: " + forkJoinPool.getPoolSize());
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

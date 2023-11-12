@@ -77,7 +77,6 @@ public class SiteParser extends RecursiveAction {
         }
     }
 
-    //метод обрабатывает все ссылки на странице и создает новые задачи парсинга для каждой ссылки
     private void handleAnchors(Elements elements, List<SiteParser> parserList) {
         String fileExtensions = indexingService.getPropertiesProject().getFileExtensions();
         for (Element anchor : elements) {
