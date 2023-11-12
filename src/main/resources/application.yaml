@@ -1,12 +1,12 @@
 indexing-settings:
   sites:
-    - url: https://et-cetera.ru/mobile/
+    - url: https://et-cetera.ru/
       name: Театр et-cetera
-    - url: https://www.playback.ru
+    - url: https://playback.ru/
       name: PlayBack.Ru
-    - url: https://www.lutherancathedral.ru/
+    - url: https://lutherancathedral.ru/
       name: Кафедральный собор Святых Петра и Павла
-    - url: https://sinara-center.com/gallery/
+    - url: https://sinara-center.com/
       name: синара центр
     - url: https://ugmk-telecom.ru/
       name: УГМК-Телеком
@@ -30,7 +30,7 @@ spring:
     database: mysql
     show-sql: false
     hibernate:
-      ddl-auto: create-update
+      ddl-auto: validate
       dialect: org.hibernate.dialect.MySQL8Dialect
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl

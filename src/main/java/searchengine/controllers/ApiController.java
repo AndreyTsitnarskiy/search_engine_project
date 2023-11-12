@@ -56,9 +56,13 @@ public class ApiController {
                                                     @RequestParam(value = "site", required = false) String url,
                                                     @RequestParam(value = "offset", required = false) Integer offset,
                                                     @RequestParam(value = "limit", required = false) Integer limit) {
-        if (url != null && !url.isEmpty()) {
+        log.info("Query: " + query + ", url: " + url + ", offset: " + offset + ", limit: " + limit);
+        if(url == null || url.isEmpty()) {
+            url = "";
+        }
+        else {
             url = URLDecoder.decode(url, StandardCharsets.UTF_8);
         }
-            return ResponseEntity.ok(searchService.search(query, URLDecoder.decode(url, StandardCharsets.UTF_8), offset, limit).getBody());
+            return ResponseEntity.ok(searchService.search(query, url, offset, limit).getBody());
         }
     }

@@ -48,26 +48,77 @@ public class SearchServiceImpl implements SearchService {
         return ResponseEntity.ok(apiSearchResponse);
     }
 
-    private ApiSearchResponse getApiSearchResponse(String query, String url){
+    private ApiSearchResponse getApiSearchResponse(String query, String url) {
+        ApiSearchResponse apiSearchResponse;
+        if (url == null || url.isEmpty()){
+            List<ApiSearchResult> allSitesResult = buildApiResultListAllSites(query);
+            apiSearchResponse = buildApiSearchResponse(allSitesResult);
+        } else {
+            List<ApiSearchResult> singleSiteResult = buildApiResultListSingleSite(query, url);
+            apiSearchResponse = buildApiSearchResponse(singleSiteResult);
+        }
+        return apiSearchResponse;
+    }
+
+    private Map<Float, PageEntity> getSearchResultAllSites(String query) {
+        List<SiteEntity> sites = siteRepository.findAll();
+        Map<Float, PageEntity> allResultsPage = new HashMap<>();
+        for (SiteEntity siteEntity : sites) {
+            allResultsPage.putAll(getSearchResults(query, siteEntity.getUrl()));
+        }
+        Map<Float, PageEntity> sortedMap = getSortedSearchResults(allResultsPage);
+        return sortedMap;
+    }
+
+    private Map<Float, PageEntity> getSearchResults(String query, String url) {
+        return findPagesByRelativePages(query, getSiteEntityByUrl(url));
+    }
+
+    private Map<Float, PageEntity> getSortedSearchResults(Map<Float, PageEntity> entry) {
+        Map<Float, PageEntity> unsortedMap = new HashMap<>(entry);
+        return  unsortedMap.entrySet()
+                .stream()
+                .sorted(Collections.reverseOrder(Map.Entry.comparingByKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+    }
+
+    private List<ApiSearchResult> buildApiResultListAllSites(String query) {
+        List<ApiSearchResult> resultData = new ArrayList<>();
+        Map<Float, PageEntity> allResultsPage = getSearchResultAllSites(query);
+        for (Map.Entry<Float, PageEntity> entry : allResultsPage.entrySet()) {
+            SiteEntity siteEntity = entry.getValue().getSite();
+            String snippet = execSnippet(query, entry.getValue());
+            if(snippet == null || snippet.isEmpty()){
+                continue;
+            }
+            ApiSearchResult apiSearchResult = new ApiSearchResult();
+            apiSearchResult.setSite(siteEntity.getUrl().substring(0, siteEntity.getUrl().length() - 1));
+            apiSearchResult.setSiteName(siteEntity.getName());
+            apiSearchResult.setUri(entry.getValue().getPath());
+            apiSearchResult.setRelevance(entry.getKey());
+            apiSearchResult.setTitle(execTitle(entry.getValue()));
+            apiSearchResult.setSnippet(snippet);
+            resultData.add(apiSearchResult);
+        }
+        return resultData;
+    }
+
+    private ApiSearchResponse buildApiSearchResponse(List<ApiSearchResult> entry) {
         ApiSearchResponse apiSearchResponse = new ApiSearchResponse();
         apiSearchResponse.setResult(true);
-        List<ApiSearchResult> resultData = search(query, url);
+        List<ApiSearchResult> resultData = entry;
         apiSearchResponse.setCount(resultData.size());
         apiSearchResponse.setData(resultData);
         apiSearchResponse.setMessageError(null);
         return apiSearchResponse;
     }
 
-    private List<ApiSearchResult> search(String query, String url){
+    private List<ApiSearchResult> buildApiResultListSingleSite(String query, String url){
         List<ApiSearchResult> resultData = new ArrayList<>();
-        Map<Float, PageEntity> execData = findPagesByRelativePages(query, getSiteEntityByUrl(url));
-        Map<Float, PageEntity> sortedMap = execData.entrySet()
-                .stream()
-                .sorted(Collections.reverseOrder(Map.Entry.comparingByKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+        Map<Float, PageEntity> sortedMap = getSortedSearchResults(getSearchResults(query, url));
         SiteEntity siteEntity = getSiteEntityByUrl(url);
         for (Map.Entry<Float, PageEntity> entry : sortedMap.entrySet()) {
-            String snippet = execSnippet(query, siteEntity, entry.getValue());
+            String snippet = execSnippet(query, entry.getValue());
             if(snippet == null || snippet.isEmpty()){
               continue;
             }
@@ -88,9 +139,9 @@ public class SearchServiceImpl implements SearchService {
         return document.title();
     }
 
-    private String execSnippet(String query, SiteEntity siteEntity, PageEntity pageEntity){
+    private String execSnippet(String query, PageEntity pageEntity){
         Set<String> queryWords = LemmaExecute.getLemmaList(query);
-        LemmaEntity lemmaEntity = lemmaRepository.findByMinFrequency(siteEntity.getId(), queryWords);
+        LemmaEntity lemmaEntity = lemmaRepository.findByMinFrequency(pageEntity.getSite().getId(), queryWords);
         String pathToSave = kmpSnippet.idleSnippet(pageEntity.getContent(), lemmaEntity.getLemma());
         if (pathToSave == null || pathToSave.isEmpty()){
             return null;
@@ -112,6 +163,7 @@ public class SearchServiceImpl implements SearchService {
 
     private SiteEntity getSiteEntityByUrl(String url){
         SiteEntity siteEntity = siteRepository.findSiteEntityByUrl(url);
+        log.info("Method getSiteEntityByUrl " + siteEntity.getId() + " " + siteEntity.getName());
         if (siteEntity != null){
             return siteEntity;
         }
@@ -119,6 +171,7 @@ public class SearchServiceImpl implements SearchService {
     }
 
     private List<LemmaEntity> getQueryWords(String query, SiteEntity siteEntity){
+        log.info("Method getQueryWords " + siteEntity.getId() + " " + siteEntity.getName());
         Set<String> queryWords = LemmaExecute.getLemmaList(query);
         return lemmaRepository.findByLemmaName(siteEntity.getId(), queryWords);
     }
@@ -149,10 +202,8 @@ public class SearchServiceImpl implements SearchService {
 
         for (Integer pageId : listNumberPages) {
             float absolute = 0;
-
             for (Map.Entry<LemmaEntity, List<IndexEntity>> entry : allLemmasAndValuePages.entrySet()) {
                 List<IndexEntity> indexes = entry.getValue();
-
                 for (IndexEntity index : indexes) {
                     if (index.getPage().getId() == pageId) {
                         absolute += index.getRank_lemmas();
