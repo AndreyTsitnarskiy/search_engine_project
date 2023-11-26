@@ -75,25 +75,23 @@ public class SearchServiceImpl implements SearchService {
     // Получение результатов поиска по всем сайтам
     private Map<PageEntity, Float> getSearchResultAllSites(String query, String url) {
         List<SiteEntity> sites = getQueryFromCountSites(url);
-        log.info("Колличество сайтов для поиска: " + sites.size());
         Map<PageEntity, Float> allResultsPage = findPagesByRelativePages(query);
         log.info("Найдено страниц: " + allResultsPage.size());
-        Map<PageEntity, Float> result = new HashMap<>();
-        for (SiteEntity siteEntity : sites) {
-            for (Map.Entry<PageEntity, Float> entry : allResultsPage.entrySet()) {
-                if (entry.getKey().getSite().getId() == siteEntity.getId()) {
-                    result.put(entry.getKey(), entry.getValue());
-                }
-            }
-        }
-        Map<PageEntity, Float> sortedMap = getSortedSearchResults(result);
-        return sortedMap;
+        return filterResultsBySites(allResultsPage, sites);
     }
+
+    private Map<PageEntity, Float> filterResultsBySites(Map<PageEntity, Float> allResultsPage, List<SiteEntity> sites) {
+        return allResultsPage.entrySet()
+                .stream()
+                .filter(entry -> sites.stream().anyMatch(site -> entry.getKey().getSite().getId() == (site.getId())))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
 
     //Метод получения одного сайта
     private List<ApiSearchResult> getApiSearchResult(String query, String url){
         List<ApiSearchResult> apiSearchResultList = new ArrayList<>();
-        Map<PageEntity, Float> result = getSearchResultAllSites(query, url);
+        Map<PageEntity, Float> result = getSortedSearchResults(getSearchResultAllSites(query, url));
         log.info("Количество страниц найденых по поиску: " + result.size());
         for (Map.Entry<PageEntity, Float> entry : result.entrySet()) {
             String snippet = execSnippet(query, entry.getKey());
@@ -167,7 +165,6 @@ public class SearchServiceImpl implements SearchService {
         return lemmaRepository.findByLemmaName(queryWords);
     }
 
-    // Получение списка индексов по лемме с наименьшей частотой
     private List<Integer> getListPageIdFromIndexRepository(String query){
         List<Integer> listPageIdFromLemmaMinFrequency = new ArrayList<>();
         Set<String> queryWords = LemmaExecute.getLemmaList(query);
@@ -179,7 +176,6 @@ public class SearchServiceImpl implements SearchService {
         return listPageIdFromLemmaMinFrequency;
     }
 
-    // Получение списка ID страниц для запроса
     private Map<LemmaEntity, List<IndexEntity>> getAllIndexesForLemma(List<LemmaEntity> queryWords){
         Map<LemmaEntity, List<IndexEntity>> result = new HashMap<>();
         for (LemmaEntity lemmaEntity : queryWords) {
@@ -192,27 +188,33 @@ public class SearchServiceImpl implements SearchService {
         return result;
     }
 
-    // Получение всех индексов для лемм
     private Map<Integer, Float> calculateAbsolutePages(String query) {
         Map<Integer, Float> result = new HashMap<>();
-        List<LemmaEntity> allWorldsInQuery = getQueryWords(query);
-        log.info("Количество лемм в запросе: " + allWorldsInQuery.size());
-        Map<LemmaEntity, List<IndexEntity>> allLemmasAndValuePages = getAllIndexesForLemma(allWorldsInQuery);
+        List<LemmaEntity> allWordsInQuery = getQueryWords(query);
+        Map<LemmaEntity, List<IndexEntity>> allLemmasAndValuePages = getAllIndexesForLemma(allWordsInQuery);
         List<Integer> listNumberPages = getListPageIdFromIndexRepository(query);
-        log.info("Количество страниц на которых есть лема с саммым большей частотой: " + listNumberPages.size());
         for (Integer pageId : listNumberPages) {
-            float absolute = 0;
-            for (Map.Entry<LemmaEntity, List<IndexEntity>> entry : allLemmasAndValuePages.entrySet()) {
-                List<IndexEntity> indexes = entry.getValue();
-                for (IndexEntity index : indexes) {
-                    if (index.getPage().getId() == pageId) {
-                        absolute += index.getRank_lemmas();
-                    }
-                }
-            }
+            float absolute = calculateAbsoluteForPage(pageId, allLemmasAndValuePages);
             result.put(pageId, absolute);
         }
+
         return result;
+    }
+
+    private float calculateAbsoluteForPage(Integer pageId, Map<LemmaEntity, List<IndexEntity>> allLemmasAndValuePages) {
+        float absolute = 0;
+        for (Map.Entry<LemmaEntity, List<IndexEntity>> entry : allLemmasAndValuePages.entrySet()) {
+            absolute += calculateAbsoluteForLemmaAndPage(entry.getKey(), entry.getValue(), pageId);
+        }
+        return absolute;
+    }
+
+    private float calculateAbsoluteForLemmaAndPage(LemmaEntity lemmaEntity, List<IndexEntity> indexes, Integer pageId) {
+        return indexes.stream()
+                .filter(index -> index.getPage().getId() == pageId)
+                .map(IndexEntity::getRank_lemmas)
+                .reduce(Float::sum)
+                .orElse(0f);
     }
 
     private float findMaxValue(Map<Integer, Float> absolutePages){
