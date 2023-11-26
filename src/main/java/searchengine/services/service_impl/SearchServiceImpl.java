@@ -62,18 +62,13 @@ public class SearchServiceImpl implements SearchService {
 
     //Метод получения одного сайта или всех сайтов если null
     private List<SiteEntity> getQueryFromCountSites(String url){
-        log.info("Getting sites for url: {}", url);
         List<SiteEntity> siteEntityList = new ArrayList<>();
         if (url == null || url.isEmpty()){
-            log.info("true");
             siteEntityList = siteRepository.findAll();
-            log.info("QUERY FROM ALL SITES " + siteEntityList.size() + " " + siteEntityList);
         } else {
-            log.info("false");
             SiteEntity siteEntity = getSiteEntityByUrl(url);
             siteEntityList.add(siteEntity);
         }
-        log.info("Method get all sites Found {} sites", siteEntityList.size());
         return siteEntityList;
     }
 
@@ -111,6 +106,7 @@ public class SearchServiceImpl implements SearchService {
             apiSearchResult.setUri(entry.getKey().getPath());
             apiSearchResult.setSnippet(snippet);
             apiSearchResult.setTitle(execTitle(entry.getKey()));
+            apiSearchResult.setRelevance(entry.getValue());
             apiSearchResultList.add(apiSearchResult);
         }
         return apiSearchResultList;
@@ -143,15 +139,17 @@ public class SearchServiceImpl implements SearchService {
     }
 
     private boolean checkQuery(String query){
-        return query == null && query.isEmpty() && query.matches("\\s+");
+        return query == null || query.isEmpty() || query.matches("\\s+");
     }
 
     private boolean checkStatusSites(String url){
         SiteEntity siteEntity = siteRepository.findSiteEntityByUrl(url);
-        if (siteEntity != null && siteEntity.getStatus().equals("INDEXED")){
-            return true;
+        if (siteEntity == null){
+            return false;
+        } else if (siteEntity.getStatus().equals("INDEXED")){
+            return false;
         }
-        return false;
+        return true;
     }
 
     private SiteEntity getSiteEntityByUrl(String url){
@@ -178,7 +176,6 @@ public class SearchServiceImpl implements SearchService {
         for (LemmaEntity lemma : lemmaEntitiesAllInRepository) {
             listPageIdFromLemmaMinFrequency.addAll(indexRepository.findPagesIdByLemmaIdIn(lemma.getId()));
         }
-        log.info("Все страницы на которых есть лемма метод getListPageIdFromIndexRepository: " + listPageIdFromLemmaMinFrequency.size());
         return listPageIdFromLemmaMinFrequency;
     }
 
@@ -215,7 +212,6 @@ public class SearchServiceImpl implements SearchService {
             }
             result.put(pageId, absolute);
         }
-        log.info("Количество страниц с абсолютными значениями, метод calculateAbsolutePages: " + result.size());
         return result;
     }
 
@@ -236,18 +232,15 @@ public class SearchServiceImpl implements SearchService {
         for (Map.Entry<Integer, Float> entry : calcAbsolutePages.entrySet()) {
             result.put(entry.getKey(), entry.getValue() / maxAbsoluteValue);
         }
-        log.info("Количество страниц с относительными значениями, метод calculateRelativePages: " + result.size());
         return result;
     }
 
     private Map<PageEntity, Float> findPagesByRelativePages(String query) {
         Map<Integer, Float> data = calculateRelativePages(query);
-        log.info("Количество страниц с относительными значениями, метод findPagesByRelativePages: " + data.size());
         Map<PageEntity, Float> result = new HashMap<>();
         for (Map.Entry<Integer, Float> entry : data.entrySet()) {
             result.put(pageRepository.findById(entry.getKey()).get(), entry.getValue());
         }
-        log.info("Результат относительными значениями, метод findPagesByRelativePages: " + result.size());
         return result;
     }
 }
