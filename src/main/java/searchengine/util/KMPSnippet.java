@@ -66,7 +66,6 @@ public class KMPSnippet {
     }
 
     private int[] prefixFunction(String lemma) {
-        log.info("prefix function: " + lemma);
         int[] prefix = new int[lemma.length()];
         for (int i = 1; i < lemma.length(); i++) {
             int j = 0;

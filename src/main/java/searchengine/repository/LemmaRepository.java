@@ -38,4 +38,7 @@ public interface LemmaRepository extends JpaRepository<LemmaEntity, Long> {
     @Query(value = "SELECT * FROM Lemmas WHERE lemma IN :queryWords " +
             "AND frequency = (SELECT min(frequency) FROM Lemmas WHERE lemma IN :queryWords)", nativeQuery = true)
     LemmaEntity findByMinFrequency(@Param("queryWords") Set<String> queryWords);
+
+    @Query(value = "SELECT * FROM Lemmas WHERE lemma = :word", nativeQuery = true)
+    List<LemmaEntity> getLemmaAllSites(@Param("word") String word);
 }
