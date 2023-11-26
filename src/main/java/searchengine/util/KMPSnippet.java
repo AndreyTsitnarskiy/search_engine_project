@@ -13,56 +13,62 @@ import java.util.List;
 public class KMPSnippet {
 
     public String idleSnippet(String text, String lemma) {
-        StringBuilder sb = new StringBuilder();
         String result = cutSnippet(text, lemma);
-        if(result == null || result.length() == 0) {
+        if (result == null || result.length() == 0) {
             return null;
         }
+        int[] snippetBounds = findSnippetBounds(result);
+        return buildSnippet(result, snippetBounds);
+    }
+
+    public String cutSnippet(String text, String lemma) {
+        Document document = Jsoup.parse(text);
+        String body = document.body().text();
+        List<Integer> result = KMPSearch(body, lemma);
+        if (!result.isEmpty()) {
+            int[] snippetBounds = calculateSnippetBounds(result, body.length(), lemma.length());
+            return buildSnippet(body, snippetBounds);
+        }
+        return null;
+    }
+
+    private String buildSnippet(String text, int[] bounds) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("... ").append(text.substring(bounds[0], bounds[1] + 1)).append(" ...");
+        return sb.toString();
+    }
+
+    private int[] findSnippetBounds(String result) {
         char[] chars = result.toCharArray();
         int startIndex = 0;
         int endIndex = 0;
         for (int i = 0; i < chars.length; i++) {
-            if(chars[i] == ' ') {
+            if (chars[i] == ' ') {
                 startIndex = i;
                 break;
             }
         }
         for (int i = chars.length - 1; i >= 0; i--) {
-            if(chars[i] == ' ') {
+            if (chars[i] == ' ') {
                 endIndex = i;
                 break;
             }
         }
-
-        sb.append("... ").append(result.substring(startIndex, endIndex + 1)).append(" ...");
-        return sb.toString();
+        return new int[]{startIndex, endIndex};
     }
 
-    public String cutSnippet(String text, String lemma) {
-        StringBuilder sb = new StringBuilder();
-        Document document = Jsoup.parse(text);
-        String body = document.body().text();
-        List<Integer> result = KMPSearch(body, lemma);
-        if (result.size() != 0) {
-            int startSubString = result.get(0);
-            if (result.get(0) > 40) {
-                startSubString = startSubString - 40;
-            }
-            int finishSubString = result.get(0);
-            int startSubString2 = result.get(0) + lemma.length();
-            int finishSubString2 = result.get(0) + lemma.length();
-            if (result.get(0) + lemma.length() < body.length()) {
-                finishSubString2 = finishSubString2 + 40;
-            }
-
-            sb.append(body.substring(startSubString, finishSubString))
-                    .append("<b>")
-                    .append(lemma)
-                    .append("</b>")
-                    .append(body.substring(startSubString2, finishSubString2));
-            return sb.toString();
+    private int[] calculateSnippetBounds(List<Integer> result, int bodyLength, int lemmaLength) {
+        int startSubString = result.get(0);
+        if (result.get(0) > 40) {
+            startSubString = startSubString - 40;
         }
-        return null;
+        int finishSubString = result.get(0);
+        int startSubString2 = result.get(0) + lemmaLength;
+        int finishSubString2 = result.get(0) + lemmaLength;
+        if (result.get(0) + lemmaLength < bodyLength) {
+            finishSubString2 = finishSubString2 + 40;
+        }
+        return new int[]{startSubString, finishSubString, startSubString2, finishSubString2};
     }
 
     private int[] prefixFunction(String lemma) {
