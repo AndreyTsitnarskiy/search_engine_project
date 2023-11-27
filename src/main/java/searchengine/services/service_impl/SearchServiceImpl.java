@@ -49,7 +49,6 @@ public class SearchServiceImpl implements SearchService {
         return ResponseEntity.ok(apiSearchResponse);
     }
 
-    // Метод для формирования ответа на запрос
     private ApiSearchResponse getApiSearchResponse(String query, String url) {
         ApiSearchResponse apiSearchResponse = new ApiSearchResponse();
         apiSearchResponse.setResult(true);
@@ -60,7 +59,6 @@ public class SearchServiceImpl implements SearchService {
         return apiSearchResponse;
     }
 
-    //Метод получения одного сайта или всех сайтов если null
     private List<SiteEntity> getQueryFromCountSites(String url){
         List<SiteEntity> siteEntityList = new ArrayList<>();
         if (url == null || url.isEmpty()){
@@ -72,7 +70,6 @@ public class SearchServiceImpl implements SearchService {
         return siteEntityList;
     }
 
-    // Получение результатов поиска по всем сайтам
     private Map<PageEntity, Float> getSearchResultAllSites(String query, String url) {
         List<SiteEntity> sites = getQueryFromCountSites(url);
         Map<PageEntity, Float> allResultsPage = findPagesByRelativePages(query);
@@ -88,7 +85,6 @@ public class SearchServiceImpl implements SearchService {
     }
 
 
-    //Метод получения одного сайта
     private List<ApiSearchResult> getApiSearchResult(String query, String url){
         List<ApiSearchResult> apiSearchResultList = new ArrayList<>();
         Map<PageEntity, Float> result = getSortedSearchResults(getSearchResultAllSites(query, url));
@@ -118,22 +114,20 @@ public class SearchServiceImpl implements SearchService {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
     }
 
-
-    // Получение заголовка страницы
     private String execTitle(PageEntity pageEntity){
         Document document = Jsoup.parse(pageEntity.getContent());
         return document.title();
     }
 
-    // Получение сниппета
     private String execSnippet(String query, PageEntity pageEntity){
         Set<String> queryWords = LemmaExecute.getLemmaList(query);
         LemmaEntity lemmaEntity = lemmaRepository.findByMinFrequency(queryWords);
         String pathToSave = kmpSnippet.idleSnippet(pageEntity.getContent(), lemmaEntity.getLemma());
-        if (pathToSave == null || pathToSave.isEmpty()){
+        String finishSnippet = kmpSnippet.snippetFinishResult(pathToSave, queryWords);
+        if (finishSnippet == null || finishSnippet.isEmpty()){
             return null;
         }
-        return pathToSave;
+        return finishSnippet;
     }
 
     private boolean checkQuery(String query){

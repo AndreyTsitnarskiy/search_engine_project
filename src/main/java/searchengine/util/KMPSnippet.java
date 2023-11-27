@@ -7,10 +7,41 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Component
 public class KMPSnippet {
+
+    public String snippetFinishResult(String text, Set<String> lemmas) {
+        StringBuilder sb = new StringBuilder();
+        List<String> lemmasList = new ArrayList<>(lemmas);
+        if(text == null) {
+            return null;
+        }
+        for (int i = 0; i < lemmas.size(); i++) {
+            List<Integer> result = KMPSearch(text.toLowerCase(), lemmasList.get(i));
+            if(result.isEmpty() || result.get(0) == 0) {
+                continue;
+            }
+            String boldWorld = boldWorld(text, result.get(0));
+            sb.append(text.substring(1, result.get(0) - 1))
+                    .append(" <b>").append(boldWorld).append("</b> ")
+                    .append(text.substring(result.get(0) + boldWorld.length(), text.length()));
+        }
+        return sb.toString();
+    }
+
+    private String boldWorld(String text, int start) {
+        StringBuilder sb = new StringBuilder();
+        for(int i = start; i < text.length(); i++){
+            if(text.charAt(i) == ' '){
+                break;
+            }
+            sb.append(text.charAt(i));
+        }
+        return sb.toString();
+    }
 
     public String idleSnippet(String text, String lemma) {
         String result = cutSnippet(text, lemma);
@@ -58,17 +89,12 @@ public class KMPSnippet {
     }
 
     private int[] calculateSnippetBounds(List<Integer> result, int bodyLength, int lemmaLength) {
-        int startSubString = result.get(0);
-        if (result.get(0) > 40) {
-            startSubString = startSubString - 40;
+        if (result.isEmpty()) {
+            return new int[]{0, 0};
         }
-        int finishSubString = result.get(0);
-        int startSubString2 = result.get(0) + lemmaLength;
-        int finishSubString2 = result.get(0) + lemmaLength;
-        if (result.get(0) + lemmaLength < bodyLength) {
-            finishSubString2 = finishSubString2 + 40;
-        }
-        return new int[]{startSubString, finishSubString, startSubString2, finishSubString2};
+        int startSubString = Math.max(0, result.get(0) - 100);
+        int finishSubString = Math.min(result.get(0) + lemmaLength + 100, bodyLength);
+        return new int[]{startSubString, finishSubString};
     }
 
     private int[] prefixFunction(String lemma) {
