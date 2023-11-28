@@ -7,39 +7,24 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Slf4j
 @Component
 public class KMPSnippet {
 
-    public String snippetFinishResult(String text, Set<String> lemmas) {
+    public String snippetFinishResult(String text, String lemmas) {
         StringBuilder sb = new StringBuilder();
-        List<String> lemmasList = new ArrayList<>(lemmas);
-        if(text == null) {
+        if (text == null) {
             return null;
         }
-        for (int i = 0; i < lemmas.size(); i++) {
-            List<Integer> result = KMPSearch(text.toLowerCase(), lemmasList.get(i));
-            if(result.isEmpty() || result.get(0) == 0) {
-                continue;
-            }
-            String boldWorld = boldWorld(text, result.get(0));
-            sb.append(text.substring(1, result.get(0) - 1))
-                    .append(" <b>").append(boldWorld).append("</b> ")
-                    .append(text.substring(result.get(0) + boldWorld.length(), text.length()));
+        List<Integer> result = KMPSearch(text.toLowerCase(), lemmas);
+        if (text != null && result.size() == 0){
+            return sb.append(text).toString();
         }
-        return sb.toString();
-    }
-
-    private String boldWorld(String text, int start) {
-        StringBuilder sb = new StringBuilder();
-        for(int i = start; i < text.length(); i++){
-            if(text.charAt(i) == ' '){
-                break;
-            }
-            sb.append(text.charAt(i));
-        }
+        String boldWorld = boldWorld(text, result.get(0));
+        sb.append(text.substring(1, result.get(0) - 1))
+                .append(" <b>").append(boldWorld).append("</b> ")
+                .append(text.substring(result.get(0) + boldWorld.length(), text.length()));
         return sb.toString();
     }
 
@@ -50,6 +35,17 @@ public class KMPSnippet {
         }
         int[] snippetBounds = findSnippetBounds(result);
         return buildSnippet(result, snippetBounds);
+    }
+
+    private String boldWorld(String text, int start) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = start; i < text.length(); i++) {
+            if (text.charAt(i) == ' ') {
+                break;
+            }
+            sb.append(text.charAt(i));
+        }
+        return sb.toString();
     }
 
     public String cutSnippet(String text, String lemma) {

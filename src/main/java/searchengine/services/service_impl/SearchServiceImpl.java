@@ -73,7 +73,6 @@ public class SearchServiceImpl implements SearchService {
     private Map<PageEntity, Float> getSearchResultAllSites(String query, String url) {
         List<SiteEntity> sites = getQueryFromCountSites(url);
         Map<PageEntity, Float> allResultsPage = findPagesByRelativePages(query);
-        log.info("Найдено страниц: " + allResultsPage.size());
         return filterResultsBySites(allResultsPage, sites);
     }
 
@@ -88,7 +87,6 @@ public class SearchServiceImpl implements SearchService {
     private List<ApiSearchResult> getApiSearchResult(String query, String url){
         List<ApiSearchResult> apiSearchResultList = new ArrayList<>();
         Map<PageEntity, Float> result = getSortedSearchResults(getSearchResultAllSites(query, url));
-        log.info("Количество страниц найденых по поиску: " + result.size());
         for (Map.Entry<PageEntity, Float> entry : result.entrySet()) {
             String snippet = execSnippet(query, entry.getKey());
             if(snippet == null || snippet.isEmpty()){
@@ -123,11 +121,13 @@ public class SearchServiceImpl implements SearchService {
         Set<String> queryWords = LemmaExecute.getLemmaList(query);
         LemmaEntity lemmaEntity = lemmaRepository.findByMinFrequency(queryWords);
         String pathToSave = kmpSnippet.idleSnippet(pageEntity.getContent(), lemmaEntity.getLemma());
-        String finishSnippet = kmpSnippet.snippetFinishResult(pathToSave, queryWords);
-        if (finishSnippet == null || finishSnippet.isEmpty()){
+        for (String word : queryWords) {
+            pathToSave = kmpSnippet.snippetFinishResult(pathToSave, word);
+        }
+        if (pathToSave == null || pathToSave.isEmpty()){
             return null;
         }
-        return finishSnippet;
+        return pathToSave;
     }
 
     private boolean checkQuery(String query){
@@ -155,7 +155,6 @@ public class SearchServiceImpl implements SearchService {
     //Берем все леммы
     private List<LemmaEntity> getQueryWords(String query){
         Set<String> queryWords = LemmaExecute.getLemmaList(query);
-        log.info("Леммы запроса метод getQueryWords: " + queryWords);
         return lemmaRepository.findByLemmaName(queryWords);
     }
 
