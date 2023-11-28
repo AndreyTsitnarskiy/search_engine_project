@@ -32,7 +32,6 @@ public class SiteParser extends RecursiveAction {
 
     @SneakyThrows
     @Override
-    //асинхронная обработка сайта с обработкой возможных исключений
     protected void compute() {
         try {
             Thread.sleep(500);
@@ -47,7 +46,6 @@ public class SiteParser extends RecursiveAction {
         }
     }
 
-    //извлекаем данные из страницы, обрабатываем якоря
     private void handlePageData() throws IOException {
         log.info("HANDING PAGE DATA: " + pagePath);
         List<SiteParser> pagesList = new ArrayList<>();
@@ -69,6 +67,7 @@ public class SiteParser extends RecursiveAction {
             Document document = connection.get();
             html = document.outerHtml();
             indexingService.savePageAndSiteStatusTime(pageEntity, html, siteEntity);
+            log.info("Page indexed: " + pathToSave);
             indexingService.extractLemmas(html, pageEntity, siteEntity);
             Elements anchors = document.select("body").select("a");
             handleAnchors(anchors, pagesList);
@@ -78,7 +77,6 @@ public class SiteParser extends RecursiveAction {
         }
     }
 
-    //метод обрабатывает все ссылки на странице и создает новые задачи парсинга для каждой ссылки
     private void handleAnchors(Elements elements, List<SiteParser> parserList) {
         String fileExtensions = indexingService.getPropertiesProject().getFileExtensions();
         for (Element anchor : elements) {

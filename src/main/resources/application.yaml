@@ -1,13 +1,13 @@
 indexing-settings:
   sites:
-#    - url: https://et-cetera.ru/mobile/
-#      name: Театр et-cetera
-#    - url: https://www.playback.ru
-#      name: PlayBack.Ru
-#    - url: https://www.lutherancathedral.ru/
-#      name: Кафедральный собор Святых Петра и Павла
-#    - url: https://sinara-center.com/gallery/
-#      name: синара центр
+    - url: https://et-cetera.ru/
+      name: Театр et-cetera
+    - url: https://playback.ru/
+      name: PlayBack.Ru
+    - url: https://lutherancathedral.ru/
+      name: Кафедральный собор Святых Петра и Павла
+    - url: https://sinara-center.com/
+      name: синара центр
     - url: https://ugmk-telecom.ru/
       name: УГМК-Телеком
 
@@ -20,7 +20,7 @@ spring:
     password: rootadminroot
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
-      maximum-pool-size: 10
+      maximum-pool-size: 100
       minimum-idle: 5
       idle-timeout: 60000
       pool-name: SearchEngineHikariPool
@@ -39,6 +39,7 @@ spring:
       hibernate:
         format_sql: true
         use_sql_comments: true
+        highlight_sql: true
         jdbc.batch_size: 50
         order_inserts: true
         order_updates: true
@@ -53,13 +54,6 @@ connect:
 
 file:
   extensions: pdf|PDF|docx?|DOCX?|xlsx?|XLSX?|pptx?|PPTX?|jpe?g|JPE?G|gif|GIF|png|PNG|mp3|MP3|mp4|MP4|aac|AAC|json|JSON|csv|CSV|exe|EXE|apk|APK|rar|RAR|zip|ZIP|xml|XML|jar|JAR|bin|BIN|svg|SVG|nc|NC|webp|WEBP|m|M|fig|FIG|eps|EPS
-
-snippet:
-  border: 5
-
-page:
-  frequency:
-    limit: 95
 
 error:
   interrupted: Indexing stopped by user

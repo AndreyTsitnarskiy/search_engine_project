@@ -32,10 +32,13 @@ public interface LemmaRepository extends JpaRepository<LemmaEntity, Long> {
     @Query(value = "SELECT frequency FROM Lemmas WHERE site_id = :site_id AND lemma = :lemma", nativeQuery = true)
     int getFrequencyOccurrence(@Param("lemma") String lemma, @Param("site_id") int siteId);
 
-    @Query(value = "SELECT * FROM Lemmas WHERE site_id = :siteId AND lemma IN :queryWords order by frequency asc", nativeQuery = true)
-    List<LemmaEntity> findByLemmaName(@Param("siteId") int siteId, @Param("queryWords") Set<String> queryWords);
+    @Query(value = "SELECT * FROM Lemmas WHERE lemma IN :queryWords order by frequency asc", nativeQuery = true)
+    List<LemmaEntity> findByLemmaName(@Param("queryWords") Set<String> queryWords);
 
-    @Query(value = "SELECT * FROM Lemmas WHERE site_id = :siteId AND lemma IN :queryWords " +
-            "AND frequency = (SELECT min(frequency) FROM Lemmas WHERE site_id = :siteId AND lemma IN :queryWords)", nativeQuery = true)
-    LemmaEntity findByMinFrequency(@Param("siteId") int siteId, @Param("queryWords") Set<String> queryWords);
+    @Query(value = "SELECT * FROM Lemmas WHERE lemma IN :queryWords " +
+            "AND frequency = (SELECT min(frequency) FROM Lemmas WHERE lemma IN :queryWords)", nativeQuery = true)
+    LemmaEntity findByMinFrequency(@Param("queryWords") Set<String> queryWords);
+
+    @Query(value = "SELECT * FROM Lemmas WHERE lemma = :word", nativeQuery = true)
+    List<LemmaEntity> getLemmaAllSites(@Param("word") String word);
 }
