@@ -60,6 +60,7 @@ public class SearchServiceImpl implements SearchService {
     }
 
     private List<SiteEntity> getQueryFromCountSites(String url){
+        long start = System.currentTimeMillis();
         List<SiteEntity> siteEntityList = new ArrayList<>();
         if (url == null || url.isEmpty()){
             siteEntityList = siteRepository.findAll();
@@ -67,12 +68,15 @@ public class SearchServiceImpl implements SearchService {
             SiteEntity siteEntity = getSiteEntityByUrl(url);
             siteEntityList.add(siteEntity);
         }
+        log.info("Get query from count sites: " + (System.currentTimeMillis() - start) + " ms");
         return siteEntityList;
     }
 
     private Map<PageEntity, Float> getSearchResultAllSites(String query, String url) {
+        long start = System.currentTimeMillis();
         List<SiteEntity> sites = getQueryFromCountSites(url);
         Map<PageEntity, Float> allResultsPage = findPagesByRelativePages(query);
+        log.info("Find pages by relative pages, method getSearchResultAllSites: " + (System.currentTimeMillis() - start) + " ms");
         return filterResultsBySites(allResultsPage, sites);
     }
 
@@ -85,8 +89,11 @@ public class SearchServiceImpl implements SearchService {
 
 
     private List<ApiSearchResult> getApiSearchResult(String query, String url){
+        long start = System.currentTimeMillis();
         List<ApiSearchResult> apiSearchResultList = new ArrayList<>();
+        long start2 = System.currentTimeMillis();
         Map<PageEntity, Float> result = getSortedSearchResults(getSearchResultAllSites(query, url));
+        log.info("Get sorted search results: " + (System.currentTimeMillis() - start2) + " ms");
         for (Map.Entry<PageEntity, Float> entry : result.entrySet()) {
             String snippet = execSnippet(query, entry.getKey());
             if(snippet == null || snippet.isEmpty()){
@@ -101,10 +108,10 @@ public class SearchServiceImpl implements SearchService {
             apiSearchResult.setRelevance(entry.getValue());
             apiSearchResultList.add(apiSearchResult);
         }
+        log.info("Get api search result: " + (System.currentTimeMillis() - start) + " ms");
         return apiSearchResultList;
     }
 
-    // Сортировка результатов поиска
     private Map<PageEntity, Float> getSortedSearchResults(Map<PageEntity, Float> entry) {
         return entry.entrySet()
                 .stream()
@@ -141,6 +148,7 @@ public class SearchServiceImpl implements SearchService {
         } else if (siteEntity.getStatus().equals("INDEXED")){
             return false;
         }
+        log.info("Check status sites: " + url);
         return true;
     }
 
@@ -152,13 +160,13 @@ public class SearchServiceImpl implements SearchService {
         return null;
     }
 
-    //Берем все леммы
     private List<LemmaEntity> getQueryWords(String query){
         Set<String> queryWords = LemmaExecute.getLemmaList(query);
         return lemmaRepository.findByLemmaName(queryWords);
     }
 
     private List<Integer> getListPageIdFromIndexRepository(String query){
+        long start = System.currentTimeMillis();
         List<Integer> listPageIdFromLemmaMinFrequency = new ArrayList<>();
         Set<String> queryWords = LemmaExecute.getLemmaList(query);
         LemmaEntity lemmaEntity = lemmaRepository.findByMinFrequency(queryWords);
@@ -166,22 +174,28 @@ public class SearchServiceImpl implements SearchService {
         for (LemmaEntity lemma : lemmaEntitiesAllInRepository) {
             listPageIdFromLemmaMinFrequency.addAll(indexRepository.findPagesIdByLemmaIdIn(lemma.getId()));
         }
+        log.info("Get list page id from index repository: " + (System.currentTimeMillis() - start) + " ms");
         return listPageIdFromLemmaMinFrequency;
     }
 
     private Map<LemmaEntity, List<IndexEntity>> getAllIndexesForLemma(List<LemmaEntity> queryWords){
+        long start = System.currentTimeMillis();
         Map<LemmaEntity, List<IndexEntity>> result = new HashMap<>();
         for (LemmaEntity lemmaEntity : queryWords) {
             long lemmaId = lemmaEntity.getId();
+            long start2 = System.currentTimeMillis();
             List<Integer> listPageId = indexRepository.findPagesIdByLemmaIdIn(lemmaId);
             List<IndexEntity> indexEntities = indexRepository.findPagesIdByLemmaIdInIsPageList(lemmaEntity.getId(),
                     listPageId);
+            log.info("Map LemmaEntity and IndexEntity: " + (System.currentTimeMillis() - start2) + " ms");
             result.put(lemmaEntity, indexEntities);
         }
+        log.info("Get all indexes for lemma: " + (System.currentTimeMillis() - start) + " ms");
         return result;
     }
 
     private Map<Integer, Float> calculateAbsolutePages(String query) {
+        long start = System.currentTimeMillis();
         Map<Integer, Float> result = new HashMap<>();
         List<LemmaEntity> allWordsInQuery = getQueryWords(query);
         Map<LemmaEntity, List<IndexEntity>> allLemmasAndValuePages = getAllIndexesForLemma(allWordsInQuery);
@@ -190,19 +204,19 @@ public class SearchServiceImpl implements SearchService {
             float absolute = calculateAbsoluteForPage(pageId, allLemmasAndValuePages);
             result.put(pageId, absolute);
         }
-
+        log.info("Calculate absolute pages: " + (System.currentTimeMillis() - start) + " ms");
         return result;
     }
 
     private float calculateAbsoluteForPage(Integer pageId, Map<LemmaEntity, List<IndexEntity>> allLemmasAndValuePages) {
         float absolute = 0;
         for (Map.Entry<LemmaEntity, List<IndexEntity>> entry : allLemmasAndValuePages.entrySet()) {
-            absolute += calculateAbsoluteForLemmaAndPage(entry.getKey(), entry.getValue(), pageId);
+            absolute += calculateAbsoluteForLemmaAndPage(entry.getValue(), pageId);
         }
         return absolute;
     }
 
-    private float calculateAbsoluteForLemmaAndPage(LemmaEntity lemmaEntity, List<IndexEntity> indexes, Integer pageId) {
+    private float calculateAbsoluteForLemmaAndPage(List<IndexEntity> indexes, Integer pageId) {
         return indexes.stream()
                 .filter(index -> index.getPage().getId() == pageId)
                 .map(IndexEntity::getRank_lemmas)
@@ -231,11 +245,13 @@ public class SearchServiceImpl implements SearchService {
     }
 
     private Map<PageEntity, Float> findPagesByRelativePages(String query) {
+        long start = System.currentTimeMillis();
         Map<Integer, Float> data = calculateRelativePages(query);
         Map<PageEntity, Float> result = new HashMap<>();
         for (Map.Entry<Integer, Float> entry : data.entrySet()) {
             result.put(pageRepository.findById(entry.getKey()).get(), entry.getValue());
         }
+        log.info("Find pages by relative pages: " + (System.currentTimeMillis() - start) + " ms");
         return result;
     }
 }
