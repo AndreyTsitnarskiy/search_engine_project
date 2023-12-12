@@ -18,7 +18,7 @@ public interface SiteRepository extends JpaRepository<SiteEntity, Long> {
     @Transactional
     void deleteSiteEntityByUrl(String url);
 
-    @Query(value = "SELECT * FROM site WHERE url = :url", nativeQuery = true)
+    @Query(value = "SELECT * FROM site WHERE url = :url AND status = 'INDEXED", nativeQuery = true)
     SiteEntity findSiteEntityByUrl(@Param("url") String url);
 
 }

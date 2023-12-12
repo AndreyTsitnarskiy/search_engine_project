@@ -33,11 +33,15 @@ public interface LemmaRepository extends JpaRepository<LemmaEntity, Long> {
     int getFrequencyOccurrence(@Param("lemma") String lemma, @Param("site_id") int siteId);
 
     @Query(value = "SELECT * FROM Lemmas WHERE lemma IN :queryWords order by frequency asc", nativeQuery = true)
-    List<LemmaEntity> findByLemmaName(@Param("queryWords") Set<String> queryWords);
+    List<LemmaEntity> findAllByLemmaName(@Param("queryWords") Set<String> queryWords);
+
+    @Query(value = "SELECT * FROM Lemmas WHERE id IN :lemmaEntities and site_id IN :siteId", nativeQuery = true)
+    List<LemmaEntity> findAllByLemmaNameAndSiteName(@Param("lemmaEntities") List<LemmaEntity> lemmaEntities,
+                                                     @Param("siteId") List<SiteEntity> siteEntities);
 
     @Query(value = "SELECT * FROM Lemmas WHERE lemma IN :queryWords " +
             "AND frequency = (SELECT min(frequency) FROM Lemmas WHERE lemma IN :queryWords)", nativeQuery = true)
-    LemmaEntity findByMinFrequency(@Param("queryWords") Set<String> queryWords);
+    LemmaEntity findByMinFrequency(@Param("queryWords") List<LemmaEntity> lemmaEntities);
 
     @Query(value = "SELECT * FROM Lemmas WHERE lemma = :word", nativeQuery = true)
     List<LemmaEntity> getLemmaAllSites(@Param("word") String word);
