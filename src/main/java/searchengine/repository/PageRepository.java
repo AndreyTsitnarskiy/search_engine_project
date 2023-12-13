@@ -14,6 +14,6 @@ public interface PageRepository extends JpaRepository<PageEntity, Integer> {
 
     int countPageEntitiesBySite(SiteEntity siteEntity);
 
-    @Query(value = "SELECT COUNT(*) * :limit / 100 FROM Pages WHERE site_id = :siteId", nativeQuery = true)
-    float getPageFrequencyOccurrence(@Param("limit") int limit, @Param("siteId") int siteId);
+    @Query(value = "SELECT * FROM Pages WHERE id in :pageId", nativeQuery = true)
+    PageEntity getPagesById(@Param("pageId") int pageId);
 }
