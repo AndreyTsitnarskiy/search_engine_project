@@ -11,10 +11,13 @@ import java.util.List;
 @Repository
 public interface IndexRepository extends JpaRepository<IndexEntity, Integer> {
 
-    @Query(value = "SELECT page_id FROM indexes_table WHERE lemma_id = :lemmaIds", nativeQuery = true)
-    List<Integer> findPagesIdByLemmaIdIn(@Param("lemmaIds") long lemmaIds);
+    @Query(value = "SELECT page_id FROM indexes_table WHERE lemma_id IN " +
+            "(SELECT id FROM lemmas WHERE lemma = :lemmaIds)", nativeQuery = true)
+    List<Integer> findPagesIdByLemmaIdIn(@Param("lemmaIds") String lemmaIds);
 
-    @Query(value = "SELECT * FROM indexes_table WHERE lemma_id = :lemmaIds and page_id IN :pages", nativeQuery = true)
-    List<IndexEntity> findPagesIdByLemmaIdInIsPageList(@Param("lemmaIds") long lemmaIds,
+    @Query(value = "SELECT * FROM indexes_table WHERE lemma_id = :lemmaIds" +
+            " and page_id IN :pages", nativeQuery = true)
+    List<IndexEntity> findPagesIdByLemmaIdInIsPageList(@Param("lemmaIds") long lemma,
                                          @Param("pages") List<Integer> pages);
+
 }

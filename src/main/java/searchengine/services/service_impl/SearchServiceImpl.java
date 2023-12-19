@@ -62,6 +62,7 @@ public class SearchServiceImpl implements SearchService {
     private List<ApiSearchResult> getApiSearchResult(String query, String url){
         List<ApiSearchResult> apiSearchResultList = new ArrayList<>();
         Map<PageEntity, Float> result = sortPagesByRelationsValue(query, url);
+        log.info("result map pages: " +result.size());
         for (Map.Entry<PageEntity, Float> entry : result.entrySet()) {
             String snippet = execSnippet(query, entry.getKey());
             if(snippet == null || snippet.isEmpty()){
@@ -138,6 +139,7 @@ public class SearchServiceImpl implements SearchService {
         Map<IndexEntity, Float> map = new HashMap<>();
         Map<LemmaEntity, List<IndexEntity>> indexesForLemmaByPageId = getAllOfIndexesForLemmaByPageId(query, url);
         for (Map.Entry<LemmaEntity, List<IndexEntity>> entry : indexesForLemmaByPageId.entrySet()) {
+            log.info("size list index in lemma entity key: " + entry.getValue().size());
             for (IndexEntity indexEntity : entry.getValue()){
                 if(map.containsKey(indexEntity)){
                     map.put(indexEntity, map.get(indexEntity.getRank_lemmas()) + indexEntity.getRank_lemmas());
@@ -154,15 +156,14 @@ public class SearchServiceImpl implements SearchService {
         log.info("Size page: " + pageIdList.size() + " and " + pageIdList);
         List<LemmaEntity> lemmaEntityList = actualizeLemmaEntityList(query, url);
         for (LemmaEntity lemmaEntity : lemmaEntityList){
-            long lemmaId = lemmaEntity.getId();
-            map.put(lemmaEntity, indexRepository.findPagesIdByLemmaIdInIsPageList(lemmaId, pageIdList));
+            map.put(lemmaEntity, indexRepository.findPagesIdByLemmaIdInIsPageList(lemmaEntity.getId(), pageIdList));
         }
         return map;
     }
 
     private List<Integer> getPageIdListFromIndexRepo(String query, String url){
         LemmaEntity lemmaEntity = getRelativeFrequency(query, url);
-        return indexRepository.findPagesIdByLemmaIdIn(lemmaEntity.getId());
+        return indexRepository.findPagesIdByLemmaIdIn(lemmaEntity.getLemma());
     }
 
     private LemmaEntity getRelativeFrequency(String query, String url){
