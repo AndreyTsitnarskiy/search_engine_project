@@ -29,16 +29,15 @@ public interface LemmaRepository extends JpaRepository<LemmaEntity, Long> {
     @Query(value = "DELETE FROM lemmas WHERE site_id = :siteId AND frequency < 1", nativeQuery = true)
     void deleteLemmasWithNoFrequencies(@Param("siteId") int siteId);
 
-    @Query(value = "SELECT frequency FROM Lemmas WHERE site_id = :site_id AND lemma = :lemma", nativeQuery = true)
-    int getFrequencyOccurrence(@Param("lemma") String lemma, @Param("site_id") int siteId);
-
     @Query(value = "SELECT * FROM Lemmas WHERE lemma IN :queryWords order by frequency asc", nativeQuery = true)
-    List<LemmaEntity> findByLemmaName(@Param("queryWords") Set<String> queryWords);
+    List<LemmaEntity> findAllByLemmaName(@Param("queryWords") Set<String> queryWords);
+
+    @Query(value = "SELECT * FROM Lemmas WHERE lemma IN :lemmaEntities and site_id IN :siteId", nativeQuery = true)
+    List<LemmaEntity> findAllByLemmaNameAndSiteName(@Param("lemmaEntities") List<String> lemmaEntities,
+                                                    @Param("siteId") List<Integer> siteEntities);
 
     @Query(value = "SELECT * FROM Lemmas WHERE lemma IN :queryWords " +
-            "AND frequency = (SELECT min(frequency) FROM Lemmas WHERE lemma IN :queryWords)", nativeQuery = true)
-    LemmaEntity findByMinFrequency(@Param("queryWords") Set<String> queryWords);
+            "ORDER By frequency LIMIT 1", nativeQuery = true)
+    LemmaEntity findByMinFrequency(@Param("queryWords") List<String> queryWords);
 
-    @Query(value = "SELECT * FROM Lemmas WHERE lemma = :word", nativeQuery = true)
-    List<LemmaEntity> getLemmaAllSites(@Param("word") String word);
 }

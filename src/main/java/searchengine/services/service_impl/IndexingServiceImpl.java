@@ -171,7 +171,7 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     private void reduceLemmaFrequenciesByOnePage(String html, int siteId) {
-        Map<String, Integer> allUniquePageLemmas = getAllLemmasPage(html); // index 2 contains all lemmas
+        Map<String, Integer> allUniquePageLemmas = getAllLemmasPage(html);
         lemmaRepository.reduceByOneLemmaFrequencies(siteId, allUniquePageLemmas.keySet());
         lemmaRepository.deleteLemmasWithNoFrequencies(siteId);
     }
