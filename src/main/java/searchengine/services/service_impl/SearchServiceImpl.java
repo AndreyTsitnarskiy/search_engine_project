@@ -2,8 +2,6 @@ package searchengine.services.service_impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import searchengine.dto.api_search.ApiSearchResponse;
@@ -17,6 +15,7 @@ import searchengine.repository.LemmaRepository;
 import searchengine.repository.PageRepository;
 import searchengine.repository.SiteRepository;
 import searchengine.services.interfaces.SearchService;
+import searchengine.util.ConnectionUtil;
 import searchengine.util.KMPSnippet;
 import searchengine.util.LemmaExecute;
 
@@ -47,27 +46,29 @@ public class SearchServiceImpl implements SearchService {
             apiSearchResponse.setMessageError("Page is located outside the sites specified in the configuration file");
         } else {
             buildStringListAndLemmaEntityList(query);
-                apiSearchResponse = getApiSearchResponse(query, url);
+                apiSearchResponse = getApiSearchResponse(url);
         }
         return ResponseEntity.ok(apiSearchResponse);
     }
 
-    private ApiSearchResponse getApiSearchResponse(String query, String url) {
+    private ApiSearchResponse getApiSearchResponse(String url) {
         ApiSearchResponse apiSearchResponse = new ApiSearchResponse();
         apiSearchResponse.setResult(true);
-        List<ApiSearchResult> resultData = getApiSearchResult(query, url);
-        apiSearchResponse.setCount(resultData.size());
-        apiSearchResponse.setData(resultData);
+        List<ApiSearchResult> apiSearchResultList = getApiSearchResult(url);
+        apiSearchResponse.setCount(apiSearchResultList.size());
+        apiSearchResponse.setData(apiSearchResultList);
         apiSearchResponse.setMessageError(null);
         return apiSearchResponse;
     }
 
-    private List<ApiSearchResult> getApiSearchResult(String query, String url){
+    private List<ApiSearchResult> getApiSearchResult(String url){
         List<ApiSearchResult> apiSearchResultList = new ArrayList<>();
-        Map<PageEntity, Float> result = sortPagesByRelationsValue(query, url);
+        Map<PageEntity, Float> result = sortPagesByRelationsValue(url);
         log.info("result map pages: " +result.size());
+        log.info("sorted value: " + result.values());
         for (Map.Entry<PageEntity, Float> entry : result.entrySet()) {
-            String snippet = execSnippet(entry.getKey());
+            PageEntity pageEntity = entry.getKey();
+            String snippet = execSnippet(pageEntity);
             if(snippet == null || snippet.isEmpty()){
                 continue;
             }
@@ -76,7 +77,7 @@ public class SearchServiceImpl implements SearchService {
             apiSearchResult.setSite(entry.getKey().getSite().getUrl());
             apiSearchResult.setUri(entry.getKey().getPath());
             apiSearchResult.setSnippet(snippet);
-            apiSearchResult.setTitle(execTitle(entry.getKey()));
+            apiSearchResult.setTitle(ConnectionUtil.getTextFromContentToSnippet(pageEntity.getContent()));
             apiSearchResult.setRelevance(entry.getValue());
             apiSearchResultList.add(apiSearchResult);
         }
@@ -95,30 +96,24 @@ public class SearchServiceImpl implements SearchService {
         return pathToSave;
     }
 
-    private String execTitle(PageEntity pageEntity){
-        Document document = Jsoup.parse(pageEntity.getContent());
-        return document.title();
-    }
-
-    private Map<PageEntity, Float> sortPagesByRelationsValue(String query, String url){
-        Map<PageEntity, Float> map = getPagesByRelationsRanking(query, url);
+    private Map<PageEntity, Float> sortPagesByRelationsValue(String url){
+        Map<PageEntity, Float> map = getPagesByRelationsRanking(url);
         return map.entrySet().stream()
-                .sorted(Map.Entry.comparingByValue())
+                .sorted(Map.Entry.<PageEntity, Float>comparingByValue().reversed())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (oldValue, newValue) -> oldValue, LinkedHashMap::new));
     }
 
-    private Map<PageEntity, Float> getPagesByRelationsRanking(String query, String url){
+    private Map<PageEntity, Float> getPagesByRelationsRanking(String url){
         Map<PageEntity, Float> map = new HashMap<>();
-        Map<IndexEntity, Float> relativeResultRanking = getRelativeResultRanking(query, url);
+        Map<IndexEntity, Float> relativeResultRanking = getRelativeResultRanking(url);
         for (Map.Entry<IndexEntity, Float> entry : relativeResultRanking.entrySet()) {
             map.put(entry.getKey().getPage(), entry.getValue());
         }
         return map;
-
     }
 
-    private Map<IndexEntity, Float> getRelativeResultRanking(String query, String url){
-        Map<IndexEntity, Float> map = getCalculateAbsoluteRanking(query, url);
+    private Map<IndexEntity, Float> getRelativeResultRanking(String url){
+        Map<IndexEntity, Float> map = getCalculateAbsoluteRanking(url);
         float max = getMaxValueAbsoluteRanking(map);
         for (Map.Entry<IndexEntity, Float> entry : map.entrySet()) {
             entry.setValue(entry.getValue() / max);
@@ -136,7 +131,7 @@ public class SearchServiceImpl implements SearchService {
         return max;
     }
 
-    private Map<IndexEntity, Float> getCalculateAbsoluteRanking(String query, String url){
+    private Map<IndexEntity, Float> getCalculateAbsoluteRanking(String url){
         Map<IndexEntity, Float> map = new HashMap<>();
         Map<LemmaEntity, List<IndexEntity>> indexesForLemmaByPageId = getAllOfIndexesForLemmaByPageId(url);
         for (Map.Entry<LemmaEntity, List<IndexEntity>> entry : indexesForLemmaByPageId.entrySet()) {

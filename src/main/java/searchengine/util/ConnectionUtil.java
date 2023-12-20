@@ -43,4 +43,9 @@ public class ConnectionUtil {
         }
         return document;
     }
+
+    public String getTextFromContentToSnippet(String textHtml){
+        Document document = Jsoup.parse(textHtml);
+        return document.title();
+    }
 }
