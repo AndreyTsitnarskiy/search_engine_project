@@ -33,18 +33,21 @@ public class SearchServiceImpl implements SearchService {
     private final LemmaRepository lemmaRepository;
     private final IndexRepository indexRepository;
     private final KMPSnippet kmpSnippet;
+    private List<String> cachedLemmasToString;
+    private List<LemmaEntity> cashedLemmasToLemmaEntityList = new ArrayList<>();
 
     @Override
     public ResponseEntity<ApiSearchResponse> search(String query, String url, int offset, int limit) {
         log.info("Received search request with query: {}, url: {}, offset: {}, limit: {}", query, url, offset, limit);
         ApiSearchResponse apiSearchResponse = new ApiSearchResponse();
         apiSearchResponse.setResult(false);
-        if(checkQuery(query) || getLemmaEntityList(query).isEmpty()){
+        if(checkQuery(query)){
             apiSearchResponse.setMessageError("Query is incorrect or empty");
         } else if (checkStatusSites(url)){
             apiSearchResponse.setMessageError("Page is located outside the sites specified in the configuration file");
         } else {
-            apiSearchResponse = getApiSearchResponse(query, url);
+            buildStringListAndLemmaEntityList(query);
+                apiSearchResponse = getApiSearchResponse(query, url);
         }
         return ResponseEntity.ok(apiSearchResponse);
     }
@@ -64,7 +67,7 @@ public class SearchServiceImpl implements SearchService {
         Map<PageEntity, Float> result = sortPagesByRelationsValue(query, url);
         log.info("result map pages: " +result.size());
         for (Map.Entry<PageEntity, Float> entry : result.entrySet()) {
-            String snippet = execSnippet(query, entry.getKey());
+            String snippet = execSnippet(entry.getKey());
             if(snippet == null || snippet.isEmpty()){
                 continue;
             }
@@ -80,12 +83,10 @@ public class SearchServiceImpl implements SearchService {
         return apiSearchResultList;
     }
 
-    private String execSnippet(String query, PageEntity pageEntity){
-        List<LemmaEntity> queryWords = getLemmaEntityList(query);
-        List<String> lemmasName = queryWords.stream().map(LemmaEntity::getLemma).collect(Collectors.toList());
-        LemmaEntity lemmaEntity = lemmaRepository.findByMinFrequency(lemmasName);
+    private String execSnippet(PageEntity pageEntity){
+        LemmaEntity lemmaEntity = lemmaRepository.findByMinFrequency(cachedLemmasToString);
         String pathToSave = kmpSnippet.idleSnippet(pageEntity.getContent(), lemmaEntity.getLemma());
-        for (LemmaEntity word : queryWords) {
+        for (LemmaEntity word : cashedLemmasToLemmaEntityList) {
             pathToSave = kmpSnippet.snippetFinishResult(pathToSave, word.getLemma());
         }
         if (pathToSave == null || pathToSave.isEmpty()){
@@ -137,7 +138,7 @@ public class SearchServiceImpl implements SearchService {
 
     private Map<IndexEntity, Float> getCalculateAbsoluteRanking(String query, String url){
         Map<IndexEntity, Float> map = new HashMap<>();
-        Map<LemmaEntity, List<IndexEntity>> indexesForLemmaByPageId = getAllOfIndexesForLemmaByPageId(query, url);
+        Map<LemmaEntity, List<IndexEntity>> indexesForLemmaByPageId = getAllOfIndexesForLemmaByPageId(url);
         for (Map.Entry<LemmaEntity, List<IndexEntity>> entry : indexesForLemmaByPageId.entrySet()) {
             log.info("size list index in lemma entity key: " + entry.getValue().size());
             for (IndexEntity indexEntity : entry.getValue()){
@@ -150,45 +151,46 @@ public class SearchServiceImpl implements SearchService {
         return map;
     }
 
-    private Map<LemmaEntity, List<IndexEntity>> getAllOfIndexesForLemmaByPageId(String query, String url){
+    private Map<LemmaEntity, List<IndexEntity>> getAllOfIndexesForLemmaByPageId(String url){
         Map<LemmaEntity, List<IndexEntity>> map = new HashMap<>();
-        List<Integer> pageIdList = getPageIdListFromIndexRepo(query, url);
+        List<Integer> pageIdList = getPageIdListFromIndexRepo();
         log.info("Size page: " + pageIdList.size() + " and " + pageIdList);
-        List<LemmaEntity> lemmaEntityList = actualizeLemmaEntityList(query, url);
+        List<LemmaEntity> lemmaEntityList = actualizeLemmaEntityList(url);
         for (LemmaEntity lemmaEntity : lemmaEntityList){
             map.put(lemmaEntity, indexRepository.findPagesIdByLemmaIdInIsPageList(lemmaEntity.getId(), pageIdList));
         }
         return map;
     }
 
-    private List<Integer> getPageIdListFromIndexRepo(String query, String url){
-        LemmaEntity lemmaEntity = getRelativeFrequency(query, url);
+    private List<Integer> getPageIdListFromIndexRepo(){
+        LemmaEntity lemmaEntity = getRelativeFrequency();
         return indexRepository.findPagesIdByLemmaIdIn(lemmaEntity.getLemma());
     }
 
-    private LemmaEntity getRelativeFrequency(String query, String url){
-        LemmaEntity lemmaEntity;
-        List<LemmaEntity> lemmaEntityList = actualizeLemmaEntityList(query, url);
-        List<String> lemmasName = lemmaEntityList.stream().map(LemmaEntity::getLemma).distinct().collect(Collectors.toList());
-        lemmaEntity = lemmaRepository.findByMinFrequency(lemmasName);
+    private LemmaEntity getRelativeFrequency(){
+        log.info("Lemma: " + cachedLemmasToString);
+        LemmaEntity lemmaEntity = lemmaRepository.findByMinFrequency(cachedLemmasToString);
         return lemmaEntity;
     }
 
-    private List<LemmaEntity> actualizeLemmaEntityList(String query, String url){
-        List<LemmaEntity> lemmaEntityList = getLemmaEntityList(query);
+    private List<LemmaEntity> actualizeLemmaEntityList(String url){
         List<SiteEntity> siteEntityList = getSiteEntityList(url);
         List<Integer> siteIdList = siteEntityList.stream().map(SiteEntity::getId).collect(Collectors.toList());
-        List<String> lemmaNameList = lemmaEntityList.stream().map(LemmaEntity::getLemma).collect(Collectors.toList());
-        return lemmaRepository.findAllByLemmaNameAndSiteName(lemmaNameList, siteIdList);
+        return lemmaRepository.findAllByLemmaNameAndSiteName(cachedLemmasToString, siteIdList);
     }
 
-    private List<LemmaEntity> getLemmaEntityList(String query){
+    private void getLemmasEntityToString(){
+        cachedLemmasToString = cashedLemmasToLemmaEntityList.stream().map(LemmaEntity::getLemma).collect(Collectors.toList());
+    }
+
+    private void getLemmaEntityList(String query){
         log.info("line 189 query: {}", query);
-        List<LemmaEntity> lemmaEntityList;
         Set<String> lemmaList = LemmaExecute.getLemmaList(query);
         log.info("line 192 lemmaList: {}", lemmaList);
-        lemmaEntityList = lemmaRepository.findAllByLemmaName(lemmaList);
-        return lemmaEntityList;
+        List<LemmaEntity> lemmaEntityList = lemmaRepository.findAllByLemmaName(lemmaList);
+        log.info("getLemmaEntityList by new array list " + lemmaEntityList.size() );
+        cashedLemmasToLemmaEntityList.addAll(lemmaEntityList);
+        log.info("getLemmaEntityList " + cashedLemmasToLemmaEntityList.size());
     }
 
     private List<SiteEntity> getSiteEntityList(String url){
@@ -207,6 +209,17 @@ public class SearchServiceImpl implements SearchService {
     private boolean checkStatusSites(String url){
         List<SiteEntity> siteEntityList = getSiteEntityList(url);
         return siteEntityList.isEmpty();
+    }
+
+    private void buildStringListAndLemmaEntityList(String query){
+        if(cachedLemmasToString != null && cashedLemmasToLemmaEntityList != null) {
+            cashedLemmasToLemmaEntityList.clear();
+            cachedLemmasToString.clear();
+        }
+        if(!checkQuery(query)) {
+            getLemmaEntityList(query);
+            getLemmasEntityToString();
+        }
     }
 
     private boolean checkQuery(String query){
