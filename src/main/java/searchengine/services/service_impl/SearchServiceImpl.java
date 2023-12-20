@@ -99,7 +99,7 @@ public class SearchServiceImpl implements SearchService {
     private Map<PageEntity, Float> sortPagesByRelationsValue(String url){
         Map<PageEntity, Float> map = getPagesByRelationsRanking(url);
         return map.entrySet().stream()
-                .sorted(Map.Entry.<PageEntity, Float>comparingByValue().reversed())
+                .sorted(Map.Entry.<PageEntity, Float>comparingByValue().reversed()).limit(200)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (oldValue, newValue) -> oldValue, LinkedHashMap::new));
     }
 
@@ -135,7 +135,6 @@ public class SearchServiceImpl implements SearchService {
         Map<IndexEntity, Float> map = new HashMap<>();
         Map<LemmaEntity, List<IndexEntity>> indexesForLemmaByPageId = getAllOfIndexesForLemmaByPageId(url);
         for (Map.Entry<LemmaEntity, List<IndexEntity>> entry : indexesForLemmaByPageId.entrySet()) {
-            log.info("size list index in lemma entity key: " + entry.getValue().size());
             for (IndexEntity indexEntity : entry.getValue()){
                 if(map.containsKey(indexEntity)){
                     map.put(indexEntity, map.get(indexEntity.getRank_lemmas()) + indexEntity.getRank_lemmas());
@@ -149,7 +148,6 @@ public class SearchServiceImpl implements SearchService {
     private Map<LemmaEntity, List<IndexEntity>> getAllOfIndexesForLemmaByPageId(String url){
         Map<LemmaEntity, List<IndexEntity>> map = new HashMap<>();
         List<Integer> pageIdList = getPageIdListFromIndexRepo();
-        log.info("Size page: " + pageIdList.size() + " and " + pageIdList);
         List<LemmaEntity> lemmaEntityList = actualizeLemmaEntityList(url);
         for (LemmaEntity lemmaEntity : lemmaEntityList){
             map.put(lemmaEntity, indexRepository.findPagesIdByLemmaIdInIsPageList(lemmaEntity.getId(), pageIdList));
@@ -163,7 +161,6 @@ public class SearchServiceImpl implements SearchService {
     }
 
     private LemmaEntity getRelativeFrequency(){
-        log.info("Lemma: " + cachedLemmasToString);
         LemmaEntity lemmaEntity = lemmaRepository.findByMinFrequency(cachedLemmasToString);
         return lemmaEntity;
     }
@@ -179,13 +176,9 @@ public class SearchServiceImpl implements SearchService {
     }
 
     private void getLemmaEntityList(String query){
-        log.info("line 189 query: {}", query);
         Set<String> lemmaList = LemmaExecute.getLemmaList(query);
-        log.info("line 192 lemmaList: {}", lemmaList);
         List<LemmaEntity> lemmaEntityList = lemmaRepository.findAllByLemmaName(lemmaList);
-        log.info("getLemmaEntityList by new array list " + lemmaEntityList.size() );
         cashedLemmasToLemmaEntityList.addAll(lemmaEntityList);
-        log.info("getLemmaEntityList " + cashedLemmasToLemmaEntityList.size());
     }
 
     private List<SiteEntity> getSiteEntityList(String url){
