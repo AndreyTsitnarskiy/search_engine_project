@@ -20,5 +20,4 @@ public interface SiteRepository extends JpaRepository<SiteEntity, Long> {
 
     @Query(value = "SELECT * FROM site WHERE url = :url", nativeQuery = true)
     SiteEntity findSiteEntityByUrl(@Param("url") String url);
-
 }
