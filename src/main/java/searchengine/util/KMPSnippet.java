@@ -38,14 +38,11 @@ public class KMPSnippet {
     }
 
     private String boldWorld(String text, int start) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = start; i < text.length(); i++) {
-            if (text.charAt(i) == ' ') {
-                break;
-            }
-            sb.append(text.charAt(i));
+        int spaceIndex = text.indexOf(' ', start);
+        if(spaceIndex == -1){
+            spaceIndex = text.length();
         }
-        return sb.toString();
+        return text.substring(start, spaceIndex);
     }
 
     public String cutSnippet(String text, String lemma) {
@@ -60,9 +57,7 @@ public class KMPSnippet {
     }
 
     private String buildSnippet(String text, int[] bounds) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("... ").append(text.substring(bounds[0], bounds[1] + 1)).append(" ...");
-        return sb.toString();
+        return String.format("... %s ...", text.substring(bounds[0], bounds[1] + 1));
     }
 
     private int[] findSnippetBounds(String result) {
@@ -111,7 +106,7 @@ public class KMPSnippet {
         int i = 0;
         int j = 0;
         while (i < text.length()) {
-            if (text.charAt(i) == lemma.charAt(j)) {
+            if (i < text.length() && text.charAt(i) == lemma.charAt(j)) {
                 i++;
                 j++;
                 if (j == lemma.length()) {
